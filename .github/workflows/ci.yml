@@ -1,0 +1,55 @@
+name: CI — Elos do Vazio
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ "3.11", "3.12" ]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Compile check all Python files
+        run: python -m compileall -q .
+
+      - name: Headless smoke test (core modules & studio splash)
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+          HEADLESS: "1"
+        run: |
+          python -c "
+          import pygame
+          pygame.init()
+          pygame.display.set_mode((960, 540))
+          import config, progresso, ranking, gerenciador_salas, menu
+          from splash_estudio import AnimacaoAberturaEstudio
+          s = AnimacaoAberturaEstudio(960, 540)
+          for _ in range(90):
+              s.update(0.05)
+          assert s.concluida, 'Splash deveria concluir naturalmente em 4.5s'
+          m = menu.MenuInicial(progresso.Progresso())
+          surf = pygame.Surface((960, 540))
+          m.update(0.016)
+          m.draw(surf)
+          print('Headless smoke test passed!')
+          pygame.quit()
+          "

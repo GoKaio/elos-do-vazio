@@ -1,0 +1,40 @@
+name: Reportar Bug
+description: Informe um erro, travamento ou problema visual em Elos do Vazio
+title: "[Bug]: "
+labels: [ "bug" ]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado por ajudar a melhorar **Elos do Vazio**! Descreva abaixo o que aconteceu.
+  - type: dropdown
+    id: execucao
+    attributes:
+      label: Como você está executando o jogo?
+      options:
+        - Instalador Windows (.exe via Releases)
+        - Código-fonte Python (python main.py / JOGAR.bat)
+    validations:
+      required: true
+  - type: textarea
+    id: descricao
+    attributes:
+      label: Descrição do Problema
+      description: Explique de forma clara o que aconteceu e o que era esperado.
+      placeholder: Ex. Ao apertar [X] contra o ataque do Boss na Sala 3...
+    validations:
+      required: true
+  - type: textarea
+    id: passos
+    attributes:
+      label: Passos para Reproduzir
+      placeholder: |
+        1. Abrir o jogo...
+        2. Entrar na Sala...
+        3. Pressionar...
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log de Erro (jogo_erro.log), se houver
+      description: Caso exista um arquivo `jogo_erro.log` na pasta do jogo, cole o trecho relevante aqui.
+      render: text

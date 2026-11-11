@@ -1,0 +1,32 @@
+# Normalização automática de finais de linha
+* text=auto
+
+# Código-fonte, documentação e workflows
+*.py text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.html text eol=lf
+.gitignore text eol=lf
+.gitattributes text eol=lf
+
+# Scripts Windows
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+*.iss text eol=crlf
+
+# Arquivos binários (sem conversão CRLF/LF)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.bmp binary
+*.ogg binary
+*.wav binary
+*.mp4 binary
+*.pdf binary
+*.exe binary
+*.zip binary

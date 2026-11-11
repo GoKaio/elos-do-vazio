@@ -1,0 +1,17 @@
+name: Sugerir Melhoria
+description: Proponha uma nova mecânica, ajuste de balanceamento ou melhoria visual
+title: "[Sugestão]: "
+labels: [ "enhancement" ]
+body:
+  - type: textarea
+    id: ideia
+    attributes:
+      label: Qual é a sua ideia?
+      description: Descreva a funcionalidade ou melhoria sugerida.
+    validations:
+      required: true
+  - type: textarea
+    id: motivo
+    attributes:
+      label: Como isso melhora o jogo?
+      description: Explique o impacto na jogabilidade, visual ou usabilidade.
