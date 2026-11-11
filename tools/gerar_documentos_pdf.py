@@ -467,11 +467,44 @@ def _desenhar_borda_guia_claro(canvas, doc):
     canvas.restoreState()
 
 
+def _desenhar_fundo_pagina_clara_exposicao(canvas, doc, rodape_texto="GoZygrid Studios  ·  Elos do Vazio"):
+    """Fundo claro em papel branco com moldura dupla dourada e cantoneiras medievais."""
+    canvas.saveState()
+    pw, ph = A4
+    canvas.setFillColor(colors.white)
+    canvas.rect(0, 0, pw, ph, stroke=0, fill=1)
+
+    m = 10 * mm
+    canvas.setStrokeColor(C_OURO)
+    canvas.setLineWidth(1.5)
+    canvas.rect(m, m, pw - 2 * m, ph - 2 * m, stroke=1, fill=0)
+    canvas.setStrokeColor(C_OURO_ESCURO)
+    canvas.setLineWidth(0.6)
+    canvas.rect(m + 3, m + 3, pw - 2 * m - 6, ph - 2 * m - 6, stroke=1, fill=0)
+
+    canvas.setStrokeColor(C_OURO_ESCURO)
+    canvas.setLineWidth(1.6)
+    arm = 6 * mm
+    for cx, cy, dx, dy in (
+        (m, m, 1, 1),
+        (pw - m, m, -1, 1),
+        (m, ph - m, 1, -1),
+        (pw - m, ph - m, -1, -1),
+    ):
+        canvas.line(cx, cy, cx + arm * dx, cy)
+        canvas.line(cx, cy, cx, cy + arm * dy)
+
+    canvas.setFillColor(colors.HexColor("#3F3F46"))
+    canvas.setFont("Helvetica", 8)
+    canvas.drawCentredString(pw / 2.0, m + 4.5, f"{rodape_texto}   |   Página {doc.page}")
+    canvas.restoreState()
+
+
 def _divisor_ouro(largura=170 * mm):
     d = Drawing(largura, 8)
     d.add(Line(0, 4, largura, 4, strokeColor=C_OURO, strokeWidth=1.0))
     cx = largura / 2.0
-    d.add(Polygon([cx, 7.5, cx + 4.5, 4, cx, 0.5, cx - 4.5, 4], fillColor=C_OURO_CLARO, strokeColor=C_OURO, strokeWidth=0.6))
+    d.add(Polygon([cx, 7.5, cx + 4.5, 4, cx, 0.5, cx - 4.5, 4], fillColor=C_OURO, strokeColor=C_OURO_ESCURO, strokeWidth=0.6))
     return d
 
 
@@ -490,13 +523,19 @@ def gerar_pdf_exposicao(destino_pdf):
         author="GoZygrid Studios",
     )
 
-    st_sub = ParagraphStyle("sub", fontName="Helvetica-Bold", fontSize=9.4, leading=11.5, textColor=C_CIANO, alignment=TA_CENTER)
-    st_sec = ParagraphStyle("sec", fontName="Times-Bold", fontSize=11.5, leading=13.5, textColor=C_OURO_CLARO, spaceBefore=2.5, spaceAfter=2.0)
-    st_body = ParagraphStyle("body", fontName="Helvetica", fontSize=8.5, leading=11.5, textColor=C_MARFIM, alignment=TA_JUSTIFY)
-    st_cell_k = ParagraphStyle("ck", fontName="Helvetica-Bold", fontSize=8.1, leading=10.2, textColor=C_OURO_CLARO)
-    st_cell_v = ParagraphStyle("cv", fontName="Helvetica", fontSize=8.1, leading=10.2, textColor=C_MARFIM)
-    st_cap = ParagraphStyle("cap", fontName="Helvetica-Bold", fontSize=7.9, leading=10.0, textColor=C_OURO_CLARO, alignment=TA_CENTER)
-    st_cap_sub = ParagraphStyle("caps", fontName="Helvetica", fontSize=7.0, leading=9.0, textColor=C_PRATA, alignment=TA_CENTER)
+    c_tinta = colors.HexColor("#18181B")
+    c_tinta_suave = colors.HexColor("#3F3F46")
+    c_fundo_neutro_alt = colors.HexColor("#F8F6F2")
+    c_borda_suave = colors.HexColor("#D6CFC2")
+    c_plaque_escura = colors.HexColor("#141416")
+
+    st_sub = ParagraphStyle("sub", fontName="Helvetica-Bold", fontSize=9.4, leading=11.5, textColor=C_OURO_ESCURO, alignment=TA_CENTER)
+    st_sec = ParagraphStyle("sec", fontName="Times-Bold", fontSize=11.5, leading=13.5, textColor=c_tinta, spaceBefore=2.5, spaceAfter=2.0)
+    st_body = ParagraphStyle("body", fontName="Helvetica", fontSize=8.5, leading=11.5, textColor=c_tinta, alignment=TA_JUSTIFY)
+    st_cell_k = ParagraphStyle("ck", fontName="Helvetica-Bold", fontSize=8.1, leading=10.2, textColor=C_OURO_ESCURO)
+    st_cell_v = ParagraphStyle("cv", fontName="Helvetica", fontSize=8.1, leading=10.2, textColor=c_tinta)
+    st_cap = ParagraphStyle("cap", fontName="Helvetica-Bold", fontSize=7.9, leading=10.0, textColor=C_OURO_ESCURO, alignment=TA_CENTER)
+    st_cap_sub = ParagraphStyle("caps", fontName="Helvetica", fontSize=7.0, leading=9.0, textColor=c_tinta_suave, alignment=TA_CENTER)
 
     larg_util = A4[0] - 30 * mm
     telas = capturar_telas_reais_do_jogo()
@@ -514,7 +553,7 @@ def gerar_pdf_exposicao(destino_pdf):
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("ALIGN", (0, 0), (0, 0), "CENTER"),
         ("ALIGN", (1, 0), (1, 0), "CENTER"),
-        ("BACKGROUND", (0, 0), (-1, -1), C_PAINEL),
+        ("BACKGROUND", (0, 0), (-1, -1), c_plaque_escura),
         ("BOX", (0, 0), (-1, -1), 1.2, C_OURO),
         ("LINEAFTER", (0, 0), (0, 0), 0.8, C_OURO_ESCURO),
         ("TOPPADDING", (0, 0), (-1, -1), 3.5),
@@ -548,10 +587,10 @@ def gerar_pdf_exposicao(destino_pdf):
     ]
     tb_ficha = Table(dados_ficha, colWidths=[46 * mm, larg_util - 46 * mm])
     tb_ficha.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), C_PAINEL),
-        ("ROWBACKGROUNDS", (0, 0), (-1, -1), [C_PAINEL, C_PAINEL_ALT]),
+        ("BACKGROUND", (0, 0), (-1, -1), colors.white),
+        ("ROWBACKGROUNDS", (0, 0), (-1, -1), [c_fundo_neutro_alt, colors.white]),
         ("BOX", (0, 0), (-1, -1), 1.0, C_OURO),
-        ("GRID", (0, 0), (-1, -1), 0.5, C_OURO_ESCURO),
+        ("GRID", (0, 0), (-1, -1), 0.5, c_borda_suave),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("LEFTPADDING", (0, 0), (-1, -1), 6),
         ("RIGHTPADDING", (0, 0), (-1, -1), 6),
@@ -594,9 +633,9 @@ def gerar_pdf_exposicao(destino_pdf):
         colWidths=[w_cel, w_cel],
     )
     tb_biomas.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), C_PAINEL),
+        ("BACKGROUND", (0, 0), (-1, -1), colors.white),
         ("BOX", (0, 0), (-1, -1), 1.0, C_OURO),
-        ("INNERGRID", (0, 0), (-1, -1), 0.7, C_OURO_ESCURO),
+        ("INNERGRID", (0, 0), (-1, -1), 0.7, c_borda_suave),
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ("TOPPADDING", (0, 0), (-1, -1), 2.5),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 2.5),
@@ -615,16 +654,16 @@ def gerar_pdf_exposicao(destino_pdf):
         [
             [rl_menu, rl_comb],
             [
-                Paragraph("<b>Menu Principal & Modos:</b> Acesso à Campanha, Seleção de Salas, Boss Rush e Ranque.", st_cap_sub),
-                Paragraph("<b>Combate 2.5D:</b> Ordem de turnos, Parry [X] com hitstop, Esquiva [C] e Salto [ESPAÇO].", st_cap_sub),
+                Paragraph("<font color='#92400E'><b>Menu Principal & Modos:</b></font> Acesso à Campanha, Seleção de Salas, Boss Rush e Ranque.", st_cap_sub),
+                Paragraph("<font color='#92400E'><b>Combate 2.5D:</b></font> Ordem de turnos, Parry [X] com hitstop, Esquiva [C] e Salto [ESPAÇO].", st_cap_sub),
             ],
         ],
         colWidths=[w_cel, w_cel],
     )
     tb_comb.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), C_PAINEL),
+        ("BACKGROUND", (0, 0), (-1, -1), colors.white),
         ("BOX", (0, 0), (-1, -1), 1.0, C_OURO),
-        ("INNERGRID", (0, 0), (-1, -1), 0.6, C_OURO_ESCURO),
+        ("INNERGRID", (0, 0), (-1, -1), 0.6, c_borda_suave),
         ("ALIGN", (0, 0), (-1, -1), "CENTER"),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("TOPPADDING", (0, 0), (-1, -1), 2.5),
@@ -636,8 +675,8 @@ def gerar_pdf_exposicao(destino_pdf):
 
     doc.build(
         story,
-        onFirstPage=lambda c, d: _desenhar_fundo_pagina_escura(c, d, "GoZygrid Studios  ·  Elos do Vazio (Desenvolvido com auxílio de IA)"),
-        onLaterPages=lambda c, d: _desenhar_fundo_pagina_escura(c, d, "GoZygrid Studios  ·  Elos do Vazio (Desenvolvido com auxílio de IA)"),
+        onFirstPage=lambda c, d: _desenhar_fundo_pagina_clara_exposicao(c, d, "GoZygrid Studios  ·  Elos do Vazio (Desenvolvido com auxílio de IA)"),
+        onLaterPages=lambda c, d: _desenhar_fundo_pagina_clara_exposicao(c, d, "GoZygrid Studios  ·  Elos do Vazio (Desenvolvido com auxílio de IA)"),
     )
 
 
