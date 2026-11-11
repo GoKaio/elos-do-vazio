@@ -527,7 +527,7 @@ def construir_trilha_audio_wav(caminho_wav, ffmpeg_exe, duracao=DURACAO_TOTAL):
     _mixar(sfx_cache.get("sword_crit") if sfx_cache.get("sword_crit") is not None else corte, 21.75, 0.90)
     _mixar(corte, 21.72, 0.80)
 
-    # Ato 3C: Cooperativo Local golpes sincronizados
+    # Ato 3C: Boss Rush golpes sincronizados
     for t_coop in (24.1, 24.55, 25.1, 25.6):
         _mixar(sfx_cache.get("hit_enemy") if sfx_cache.get("hit_enemy") is not None else corte, t_coop, 0.72)
 
@@ -713,11 +713,11 @@ class DiretorTrailer:
         self.logo_estudio, self.logo_jogo = carregar_logos()
         self.particulas = MotorParticulasTrailer()
 
-        # Animadores de personagens carregados diretamente do projeto
+        # Animadores de personagens reais do projeto (sem inimigos removidos)
         self.anim_p1 = _carregar_animador_seguro(["Hero", "Soldier"])
-        self.anim_p2 = _carregar_animador_seguro(["Hero", "Soldier"], tint_rgba=(255, 150, 120, 255))
+        self.anim_boss_rush = _carregar_animador_seguro(["Boss_ReiSangrento", "Boss_Guardiao", "Demon Carmesim"])
         self.anim_cripta = _carregar_animador_seguro(["Demon Carmesim", "Esqueleto", "Orc"])
-        self.anim_duelista = _carregar_animador_seguro(["Gargula", "Orc", "Blood Monster_A", "Demon Carmesim"])
+        self.anim_duelista = _carregar_animador_seguro(["Demon_A", "Boss_Sentinela", "Esqueleto", "Demon Carmesim"])
         self.anim_boss = _carregar_animador_seguro(["Boss_Bibliotecario", "GuardiaoVazio", "Boss_Guardiao", "Demon Carmesim"])
 
         self.arena_25d = CenarioCombate25D(cenarios.LARGURA_TELA, cenarios.ALTURA_TELA, sala_idx=4)
@@ -856,7 +856,7 @@ class DiretorTrailer:
             dt_world = dt
             self.particulas.atualizar(dt)
             self.vagalumes.update(dt)
-            for anim in (self.anim_p1, self.anim_p2, self.anim_cripta, self.anim_duelista, self.anim_boss):
+            for anim in (self.anim_p1, self.anim_boss_rush, self.anim_cripta, self.anim_duelista, self.anim_boss):
                 anim.update(dt)
 
         if self.shake_restante > 0:
@@ -1104,7 +1104,7 @@ class DiretorTrailer:
             fade_preto = int(255 * max(max(0.0, 1.0 - tl / 0.22), max(0.0, (tl - 3.5) / 0.3)))
 
         # ----------------------------------------------------------------------
-        # ATO 3C: COOPERATIVO LOCAL 2 JOGADORES NAS CATACUMBAS (23.4s -> 26.5s, Sala 6)
+        # ATO 3C: MODO BOSS RUSH — CONFRONTO CONTRA REI DA LUA SANGRENTA (23.4s -> 26.5s, Sala 6)
         # ----------------------------------------------------------------------
         elif t < 26.5:
             if self.cena_anterior != "ATO3C":
@@ -1114,37 +1114,30 @@ class DiretorTrailer:
             y_cripta = 800.0
             cam_x, cam_y = 1620.0, 445.0
             p1x = 1810.0 + tl * 72.0
-            p2x = 1745.0 + tl * 84.0
             e1x = 2055.0 - min(0.8, tl * 0.25) * 40.0
-            e2x = 2135.0 - min(0.8, tl * 0.25) * 55.0
+            e2x = 2135.0 - min(0.8, tl * 0.25) * 45.0
 
             self.anim_p1.tocar("attack2" if int(tl * 3.0) % 2 == 0 else "attack", loop=True)
-            self.anim_p2.tocar("attack" if int(tl * 3.0) % 2 == 1 else "attack3", loop=True)
             self.anim_cripta.tocar("hurt" if tl > 0.7 else "walk", loop=True)
+            self.anim_boss_rush.tocar("attack" if tl > 1.2 else "idle", loop=True)
 
             if self._once("ato3c_slash1") and tl > 0.65:
                 self.particulas.emitir_arco(p1x + 42, y_cripta - 32, dir_x=1, cor=(56, 189, 248))
                 self.particulas.emitir_faiscas(e1x, y_cripta - 30, n=22, vel=290.0)
             if self._once("ato3c_slash2") and tl > 1.45:
-                self.particulas.emitir_arco(p2x + 42, y_cripta - 32, dir_x=1, cor=(251, 146, 60))
-                self.particulas.emitir_faiscas(e2x, y_cripta - 30, n=24, vel=310.0)
+                self.particulas.emitir_arco(e2x - 18, y_cripta - 44, dir_x=-1, cor=(220, 38, 38), raio=76)
+                self.particulas.emitir_faiscas(p1x + 36, y_cripta - 30, n=24, vel=310.0)
                 self.shake_restante, self.shake_forca = 0.16, 6.0
 
             self._desenhar_sala_base(5, cam_x, cam_y, t)
             self._render_actor(self.anim_cripta, self.surf_mundo, pygame.Rect(int(e1x), int(y_cripta - 62), 42, 62), cam_x, cam_y, espelhar=True, cor_fb=(185, 55, 75))
-            self._render_actor(self.anim_duelista, self.surf_mundo, pygame.Rect(int(e2x), int(y_cripta - 66), 46, 66), cam_x, cam_y, espelhar=True, cor_fb=(145, 70, 155))
-            self._render_actor(self.anim_p2, self.surf_mundo, pygame.Rect(int(p2x), int(y_cripta - 56), 36, 56), cam_x, cam_y, cor_fb=(215, 110, 65), atacando=True)
+            self._render_actor(self.anim_boss_rush, self.surf_mundo, pygame.Rect(int(e2x), int(y_cripta - 84), 58, 84), cam_x, cam_y, espelhar=True, escala_extra=1.25, cor_fb=(190, 35, 65), atacando=(tl > 1.2))
             self._render_actor(self.anim_p1, self.surf_mundo, pygame.Rect(int(p1x), int(y_cripta - 56), 36, 56), cam_x, cam_y, cor_fb=(100, 145, 225), atacando=True, eter=True)
-
-            # Marcadores limpos P1 / P2
-            for tag_lbl, tx, cor_tag in (("P1", p1x + 18, (56, 189, 248)), ("P2", p2x + 18, (251, 146, 60))):
-                st = self.fontes["tag"].render(tag_lbl, True, cor_tag)
-                self.surf_mundo.blit(st, (int(tx - cam_x - st.get_width() // 2), int(y_cripta - 74 - cam_y)))
 
             self.particulas.desenhar_fx_mundo(self.surf_mundo, cam_x, cam_y)
             self._blitar_gameplay_em_1080(zoom=1.12, foco_x=0.5, foco_y=0.55)
-            tag_coop = self.fontes["mini"].render("COOPERATIVO LOCAL  •  2 JOGADORES EM SINTONIA", True, (56, 189, 248))
-            self.surf_1080.blit(tag_coop, (LARGURA_VIDEO // 2 - tag_coop.get_width() // 2, 74))
+            tag_rush = self.fontes["mini"].render("BOSS RUSH  •  DESAFIO DOS 7 CHEFES", True, (253, 230, 138))
+            self.surf_1080.blit(tag_rush, (LARGURA_VIDEO // 2 - tag_rush.get_width() // 2, 74))
             self.particulas.desenhar_poeira_1080(self.surf_1080, t)
             fade_preto = int(255 * max(max(0.0, 1.0 - tl / 0.25), max(0.0, (tl - 2.8) / 0.3)))
 

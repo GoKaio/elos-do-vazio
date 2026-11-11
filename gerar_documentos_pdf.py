@@ -272,199 +272,142 @@ def carregar_logo_jogo(max_w, max_h):
 
 
 # ==============================================================================
-# 2. COMPOSITOR VISUAL DE SPRITES E MINIATURAS DOS 4 BIOMAS + ATLAS
+# 2. CAPTURA DIRETA DE TELAS REAIS DO JOGO (4 BIOMAS, COMBATE 2.5D E MENU)
 # ==============================================================================
-def _abrir_asset_legacy(nome_arquivo):
-    cands = [
-        os.path.join("Final", "Assets", nome_arquivo),
-        os.path.join("assets", "Legacy-Dungeon", "Final", "Assets", nome_arquivo),
-        os.path.join("assets", "legacy_dungeon", "Final", "Assets", nome_arquivo),
-        os.path.join("assets", "Final", "Assets", nome_arquivo),
-        os.path.join("assets", "final_pack", nome_arquivo),
-    ]
-    img, _ = _abrir_pil_de_disco_ou_zip(cands, nome_zip_alvo=nome_arquivo)
-    return img
-
-
-def carregar_faixa_sprites_protagonista(max_w, max_h):
-    """Extrai quadros em ação de `Character_Sprite_Sheet.png` ou fallback de `assets/Hero/*.png`."""
-    frames = []
-    sheet = _abrir_asset_legacy("Character_Sprite_Sheet.png")
-    if sheet is not None:
-        sw, sh = sheet.size
-        # Fatiamento adaptativo: grade quadrada baseada na menor dimensão ou fileiras de 8 colunas
-        tam = sh if sh <= 96 else max(16, sh // max(1, round(sh / 32)))
-        if sw >= tam * 3:
-            cols = min(6, sw // tam)
-            for c in range(cols):
-                crop = sheet.crop((c * tam, 0, (c + 1) * tam, min(sh, tam)))
-                if crop.getbbox():
-                    frames.append(crop)
-
-    if not frames:
-        # Tenta sprites modulares Tiny RPG do projeto (`Hero-Idle.png`, `Hero-Attack01.png`, `Hero-Attack02.png`, `Hero-Walk.png`)
-        for rel, quadro_idx in (
-            ("assets/Hero/Hero-Idle.png", 0),
-            ("assets/Hero/Hero-Walk.png", 2),
-            ("assets/Hero/Hero-Attack01.png", 3),
-            ("assets/Hero/Hero-Attack02.png", 3),
-        ):
-            img, _ = _abrir_pil_de_disco_ou_zip([rel])
-            if img is not None:
-                iw, ih = img.size
-                cell = ih if iw >= ih else iw
-                n_frames = max(1, iw // max(1, cell))
-                idx = min(n_frames - 1, quadro_idx)
-                q = img.crop((idx * cell, 0, (idx + 1) * cell, ih))
-                bbox = (q.split()[-1].getbbox() if q.mode == "RGBA" else None) or q.getbbox()
-                if bbox:
-                    pad = 6
-                    box = (max(0, bbox[0] - pad), max(0, bbox[1] - pad), min(q.width, bbox[2] + pad), min(q.height, bbox[3] + pad))
-                    frames.append(q.crop(box))
-
-    if not frames:
-        return PlaceholderEmblema(max_w, max_h, "SPRITES DO PROTAGONISTA", "Character_Sprite_Sheet.png não localizado")
-
-    # Monta vitrine com 4 quadros em estantes góticas iluminadas por Éter
-    w_tot, h_tot = 520, 118
-    canvas = PILImage.new("RGBA", (w_tot, h_tot), (13, 18, 32, 255))
-    draw = PILDraw.Draw(canvas)
-    draw.rectangle((0, 0, w_tot - 1, h_tot - 1), outline=(217, 119, 6, 255), width=2)
-    legenda = ("Vigília", "Avanço", "Corte / Parry", "Golpe de Éter")
-    n = min(4, len(frames))
-    larg_slot = w_tot // max(1, n)
-
-    from PIL import ImageFont
-    fonte_leg = None
-    for fn_font in ("arialbd.ttf", "arial.ttf", "DejaVuSans-Bold.ttf", "DejaVuSans.ttf"):
-        try:
-            fonte_leg = ImageFont.truetype(fn_font, 11)
-            break
-        except Exception:
-            pass
-
-    for i in range(n):
-        fr = frames[i]
-        sx0 = i * larg_slot + 8
-        sy0 = 8
-        sw_s = larg_slot - 16
-        sh_s = h_tot - 26
-        draw.rectangle((sx0, sy0, sx0 + sw_s, sy0 + sh_s), fill=(19, 25, 43, 255), outline=(56, 189, 248, 120), width=1)
-        esc = min((sw_s - 10) / float(max(1, fr.width)), (sh_s - 12) / float(max(1, fr.height)))
-        nw = max(1, int(fr.width * esc))
-        nh = max(1, int(fr.height * esc))
-        fr_sc = fr.resize((nw, nh), PILImage.Resampling.NEAREST)
-        canvas.paste(fr_sc, (sx0 + (sw_s - nw) // 2, sy0 + sh_s - nh - 4), fr_sc)
-        txt = legenda[i] if i < len(legenda) else f"Quadro {i + 1}"
-        if fonte_leg is not None:
-            draw.text((sx0 + 6, h_tot - 17), txt, font=fonte_leg, fill=(253, 230, 138, 255))
-        else:
-            txt_ascii = txt.replace("í", "i").replace("ç", "c").replace("É", "E")
-            draw.text((sx0 + 6, h_tot - 16), txt_ascii, fill=(253, 230, 138, 255))
-
-    return _pil_para_rl_image(canvas, max_w, max_h)
-
-
-def _desenhar_miniatura_bioma(bioma_idx, w=320, h=140):
-    """
-    Compõe em Pillow uma prévia fiel de cada um dos 4 biomas integrando `Background_1.png`,
-    `Background_2.png`, `Background_0.png`, `Tiles.png` e `Assets.png` quando disponíveis.
-    """
-    img = PILImage.new("RGBA", (w, h), (11, 15, 25, 255))
+def _emoldurar_captura_pil(pil_img):
+    """Adiciona borda fina dourada (#D97706) às capturas reais do jogo."""
+    img = pil_img.convert("RGBA")
     draw = PILDraw.Draw(img)
-
-    bg0 = _abrir_asset_legacy("Background_0.png")
-    bg1 = _abrir_asset_legacy("Background_1.png")
-    bg2 = _abrir_asset_legacy("Background_2.png")
-    atlas = _abrir_asset_legacy("Assets.png") or _abrir_asset_legacy("Tiles.png")
-
-    if bioma_idx == 0:
-        # Bioma 1: Ameias e Pátio Superior (`Background_1.png` + lua + tochas + bandeira)
-        if bg0 is not None:
-            cam0 = bg0.resize((w, h), PILImage.Resampling.BILINEAR)
-            img.paste(cam0, (0, 0), cam0)
-        if bg1 is not None:
-            cam1 = bg1.resize((w, h), PILImage.Resampling.BILINEAR)
-            img.paste(cam1, (0, 0), cam1)
-        draw.ellipse((w - 64, 14, w - 24, 54), fill=(226, 232, 240, 240))
-        # Ameias, mastro e tochas
-        draw.rectangle((0, h - 26, w, h), fill=(34, 41, 56, 255), outline=(71, 85, 105, 255))
-        draw.line((46, h - 26, 46, h - 92), fill=(148, 163, 184, 255), width=2)
-        draw.polygon([(47, h - 90), (84, h - 82), (47, h - 72)], fill=(153, 27, 27, 255), outline=(245, 158, 11, 255))
-        for tx in (128, 224):
-            draw.ellipse((tx - 14, h - 66, tx + 14, h - 38), fill=(249, 115, 22, 65))
-            draw.polygon([(tx - 4, h - 46), (tx, h - 62), (tx + 4, h - 46)], fill=(254, 240, 138, 255))
-
-    elif bioma_idx == 1:
-        # Bioma 2: Galerias das Torres de Vigia (`Background_2.png`, plataformas suspensas e correntes)
-        if bg0 is not None:
-            cam0 = bg0.resize((w, h), PILImage.Resampling.BILINEAR)
-            img.paste(cam0, (0, 0), cam0)
-        if bg2 is not None:
-            cam2 = bg2.resize((w, h), PILImage.Resampling.BILINEAR)
-            img.paste(cam2, (0, 0), cam2)
-        else:
-            for tx, tw, th in ((24, 34, 90), (140, 42, 110), (244, 38, 95)):
-                draw.rectangle((tx, h - th, tx + tw, h), fill=(20, 26, 44, 235), outline=(51, 65, 85, 255))
-        # Plataforma suspensa com correntes de ferro verticais + degraus
-        draw.rectangle((0, h - 44, 72, h), fill=(39, 48, 67, 255), outline=(100, 116, 139, 255))
-        draw.rectangle((w - 84, h - 38, w, h), fill=(39, 48, 67, 255), outline=(100, 116, 139, 255))
-        for px, py, pw in ((98, 64, 74), (186, 48, 68)):
-            draw.line((px + 10, 0, px + 10, py), fill=(148, 163, 184, 255), width=2)
-            draw.line((px + pw - 10, 0, px + pw - 10, py), fill=(148, 163, 184, 255), width=2)
-            draw.rectangle((px, py, px + pw, py + 12), fill=(51, 65, 85, 255), outline=(148, 163, 184, 255))
-
-    elif bioma_idx == 2:
-        # Bioma 3: Catacumbas Subterrâneas (teto fechado, arcos, grades, lápides e tochas frias)
-        draw.rectangle((0, 0, w, h), fill=(12, 14, 24, 255))
-        draw.rectangle((0, 0, w, 22), fill=(24, 28, 44, 255), outline=(71, 85, 105, 255))
-        draw.rectangle((0, h - 22, w, h), fill=(24, 28, 44, 255), outline=(71, 85, 105, 255))
-        for ax in (32, 128, 224):
-            draw.arc((ax, 22, ax + 68, 92), 180, 360, fill=(71, 85, 105, 255), width=2)
-            draw.rectangle((ax + 12, 54, ax + 56, h - 22), fill=(5, 7, 13, 255), outline=(51, 65, 85, 255))
-            for bx in range(ax + 20, ax + 54, 10):
-                draw.line((bx, 56, bx, h - 22), fill=(100, 116, 139, 255), width=2)
-        for tx in (86, 200):
-            draw.ellipse((tx - 12, 52, tx + 12, 76), fill=(56, 189, 248, 65))
-            draw.polygon([(tx - 4, 70), (tx, 54), (tx + 4, 70)], fill=(168, 85, 247, 255))
-        for lx in (106, 212):
-            draw.rounded_rectangle((lx - 8, h - 42, lx + 8, h - 22), radius=4, fill=(51, 65, 85, 255), outline=(15, 23, 42, 255))
-
-    else:
-        # Bioma 4: Santuário do Guardião (arena ampla 960px, pilares com gárgulas e portão titânico)
-        draw.rectangle((0, 0, w, h), fill=(10, 13, 26, 255))
-        draw.rectangle((0, 0, w, 16), fill=(28, 32, 52, 255), outline=(217, 119, 6, 255))
-        draw.rectangle((0, h - 22, w, h), fill=(28, 36, 62, 255), outline=(56, 189, 248, 255))
-        for gx in (58, 214):
-            draw.rectangle((gx - 12, h - 86, gx + 12, h - 22), fill=(68, 72, 92, 255), outline=(148, 163, 184, 255))
-            draw.polygon([(gx - 16, h - 86), (gx, h - 108), (gx + 16, h - 86)], fill=(100, 116, 139, 255))
-        # Portão titânico à direita com runa ciano/ouro
-        draw.rectangle((w - 54, h - 98, w - 18, h - 22), fill=(20, 24, 38, 255), outline=(217, 119, 6, 255), width=2)
-        for bx in range(w - 48, w - 20, 8):
-            draw.line((bx, h - 96, bx, h - 24), fill=(148, 163, 184, 255), width=2)
-        draw.ellipse((w - 44, h - 68, w - 28, h - 52), outline=(56, 189, 248, 255), width=2)
-
-    # Recorte de amostra do atlas de cantaria no canto se disponível
-    if atlas is not None and bioma_idx in (0, 2):
-        aw, ah = atlas.size
-        sw_c = min(44, aw)
-        sh_c = min(32, ah)
-        rec = atlas.crop((0, 0, sw_c, sh_c)).resize((36, 26), PILImage.Resampling.NEAREST)
-        img.paste(rec, (6, 6), rec)
-        draw.rectangle((5, 5, 43, 33), outline=(217, 119, 6, 255), width=1)
-
-    draw.rectangle((0, 0, w - 1, h - 1), outline=(217, 119, 6, 255), width=2)
+    w, h = img.size
+    draw.rectangle((0, 0, w - 1, h - 1), outline=(217, 119, 6, 255), width=3)
     return img
 
 
-def carregar_amostra_atlas_cantaria(max_w, max_h):
-    """Carrega recorte ilustrativo de `Assets.png` (ou `Tiles.png`) para a ficha de cenários."""
-    atlas = _abrir_asset_legacy("Assets.png") or _abrir_asset_legacy("Tiles.png")
-    if atlas is None:
-        return PlaceholderEmblema(max_w, max_h, "ATLAS DE CANTARIA", "Final/Assets/Assets.png")
-    aw, ah = atlas.size
-    rec = atlas.crop((0, 0, min(aw, 280), min(ah, 180)))
-    return _pil_para_rl_image(rec, max_w, max_h)
+def capturar_telas_reais_do_jogo():
+    """
+    Renderiza capturas autênticas diretamente pelo motor do jogo (`cenarios.py`,
+    `main.py`, `menu.py`, `combate.py`) para compor o pôster oficial de exposição.
+    """
+    capturas = {}
+    os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
+    os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
+    os.environ.setdefault("HEADLESS", "1")
+
+    try:
+        import pygame
+        if not pygame.get_init():
+            pygame.init()
+        if pygame.display.get_surface() is None:
+            pygame.display.set_mode((960, 540))
+
+        import cenarios
+        import main
+        from progresso import Progresso
+        from menu import MenuInicial
+        from combate import CombateExpedition33
+
+        prog = Progresso()
+        prog.nome_heroi = "Viajante"
+        salas = main.criar_entidades_das_salas(prog)
+
+        def _surf_para_pil(surf):
+            raw = pygame.image.tobytes(surf, "RGB")
+            return _emoldurar_captura_pil(PILImage.frombytes("RGB", surf.get_size(), raw))
+
+        def _render_sala(mapa_idx, cam_offset_dx=180, foco_boss=False):
+            surf = pygame.Surface((960, 540))
+            mapa = cenarios.DADOS_MAPAS[mapa_idx]
+            grupo = salas[mapa_idx]
+            boss_atual = grupo["boss"]
+            if foco_boss:
+                boss_atual.vivo = True
+                boss_atual.hp = boss_atual.max_hp
+                boss_atual.x = 640
+                hx, hy = 130, boss_atual.y + 32
+            else:
+                sp = mapa.get("spawn_heroi", (120, cenarios.LIMITE_SUBSOLO - 56))
+                hx, hy = sp[0] + cam_offset_dx, sp[1]
+
+            jog = main.JogadorMapa(hx, hy)
+            jog.progresso_ref = prog
+            jog.mapa_idx = mapa_idx
+            jog.update(0.05, mapa, grupo)
+
+            cam = main.CameraMapa()
+            foco_x = 480 if foco_boss else jog.x + 120
+            cam.focar_instantaneo(
+                foco_x,
+                jog.y,
+                mapa.get("largura", cenarios.LARGURA_MUNDO),
+                mapa.get("altura", cenarios.ALTURA_MUNDO),
+            )
+
+            tempo = 1.8
+            cenarios.atualizar_salas(mapa_idx, 0.05, tempo)
+            off_x, off_y = cam.offset_x, cam.offset_y
+
+            cenarios.desenhar_fundo_sala(surf, mapa_idx, offset_x=off_x, offset_y=off_y)
+            cenarios.desenhar_decoracoes(surf, mapa_idx, off_x, camera_y=off_y)
+            cenarios.desenhar_estruturas_organicas(surf, mapa_idx, off_x, camera_y=off_y, tempo=tempo)
+            cenarios.desenhar_terreno(surf, mapa_idx, off_x, camera_y=off_y)
+            cenarios.desenhar_armadilhas(surf, mapa_idx, off_x, tempo, camera_y=off_y)
+
+            larg_m = float(mapa.get("largura", cenarios.LARGURA_MUNDO))
+            portal_pos = mapa.get("portal_saida", (larg_m - 140, 960))
+            cenarios.desenhar_saida(surf, off_x, boss_atual.vivo, tempo, camera_y=off_y, portal_pos=portal_pos)
+            cenarios.desenhar_portoes(surf, grupo, off_x, off_y, tempo)
+            cenarios.desenhar_alavancas(surf, grupo, off_x, off_y, tempo)
+            cenarios.desenhar_chaves(surf, grupo, off_x, off_y, tempo)
+            cenarios.desenhar_baus(surf, grupo, off_x, off_y, tempo)
+
+            for inim in grupo["inimigos"]:
+                inim.draw(surf, cam)
+            boss_atual.draw(surf, cam)
+            jog.draw(surf, cam)
+
+            if mapa_idx == 6:
+                main.desenhar_runas_puzzle(surf, off_x, jog, tempo, camera_offset_y=off_y)
+
+            cenarios.desenhar_atmosfera_camada(surf, mapa_idx, off_y, jog.y, tempo)
+            return _surf_para_pil(surf), jog
+
+        capturas["bioma_0"], jog_s1 = _render_sala(0, cam_offset_dx=180, foco_boss=False)
+        capturas["bioma_1"], _ = _render_sala(3, cam_offset_dx=420, foco_boss=False)
+        capturas["bioma_2"], _ = _render_sala(4, cam_offset_dx=340, foco_boss=False)
+        capturas["bioma_3"], _ = _render_sala(6, foco_boss=True)
+
+        # Menu Principal real
+        surf_menu = pygame.Surface((960, 540))
+        menu = MenuInicial(prog)
+        for _ in range(25):
+            menu.update(0.05)
+        menu.draw(surf_menu)
+        capturas["menu"] = _surf_para_pil(surf_menu)
+
+        # Combate Tático 2.5D real (sem inimigos removidos)
+        surf_comb = pygame.Surface((960, 540))
+        inim_grupo = salas[0]["inimigos"][:2]
+        alvo0 = inim_grupo[0] if inim_grupo else salas[0]["boss"]
+        comb = CombateExpedition33(jog_s1, alvo0, vantagem="JOGADOR", sala_idx=0, alvos_disponiveis=inim_grupo, sala_atual=0)
+        for _ in range(30):
+            comb.update(0.04)
+        comb.draw(surf_comb)
+        capturas["combate"] = _surf_para_pil(surf_comb)
+    except Exception as exc:
+        print(f"[pdf] Aviso na captura ao vivo: {exc}")
+
+    # Fallback para capturas já exportadas em docs/screenshots/, caso necessário
+    for chave, arq in (
+        ("menu", "docs/screenshots/01_menu_principal.png"),
+        ("bioma_0", "docs/screenshots/02_exploracao_sala1.png"),
+        ("combate", "docs/screenshots/03_combate_25d.png"),
+    ):
+        if chave not in capturas:
+            img, _ = _abrir_pil_de_disco_ou_zip([arq])
+            if img is not None:
+                capturas[chave] = _emoldurar_captura_pil(img)
+
+    return capturas
 
 
 # ==============================================================================
@@ -536,26 +479,27 @@ def gerar_pdf_exposicao(destino_pdf):
         pagesize=A4,
         leftMargin=15 * mm,
         rightMargin=15 * mm,
-        topMargin=11 * mm,
-        bottomMargin=12 * mm,
+        topMargin=10 * mm,
+        bottomMargin=11 * mm,
         title="Elos do Vazio — Painel Editorial de Exposição (GoZygrid Studios)",
         author="GoZygrid Studios",
     )
 
-    st_sub = ParagraphStyle("sub", fontName="Helvetica-Bold", fontSize=9.6, leading=12, textColor=C_CIANO, alignment=TA_CENTER)
-    st_sec = ParagraphStyle("sec", fontName="Times-Bold", fontSize=12, leading=14.5, textColor=C_OURO_CLARO, spaceBefore=3, spaceAfter=2.5)
-    st_body = ParagraphStyle("body", fontName="Helvetica", fontSize=8.9, leading=12.2, textColor=C_MARFIM, alignment=TA_JUSTIFY)
-    st_cell_k = ParagraphStyle("ck", fontName="Helvetica-Bold", fontSize=8.4, leading=11, textColor=C_OURO_CLARO)
-    st_cell_v = ParagraphStyle("cv", fontName="Helvetica", fontSize=8.4, leading=11, textColor=C_MARFIM)
-    st_cap = ParagraphStyle("cap", fontName="Helvetica-Bold", fontSize=8.0, leading=10.2, textColor=C_OURO_CLARO, alignment=TA_CENTER)
-    st_cap_sub = ParagraphStyle("caps", fontName="Helvetica", fontSize=7.3, leading=9.5, textColor=C_PRATA, alignment=TA_CENTER)
+    st_sub = ParagraphStyle("sub", fontName="Helvetica-Bold", fontSize=9.4, leading=11.5, textColor=C_CIANO, alignment=TA_CENTER)
+    st_sec = ParagraphStyle("sec", fontName="Times-Bold", fontSize=11.5, leading=13.5, textColor=C_OURO_CLARO, spaceBefore=2.5, spaceAfter=2.0)
+    st_body = ParagraphStyle("body", fontName="Helvetica", fontSize=8.5, leading=11.5, textColor=C_MARFIM, alignment=TA_JUSTIFY)
+    st_cell_k = ParagraphStyle("ck", fontName="Helvetica-Bold", fontSize=8.1, leading=10.2, textColor=C_OURO_CLARO)
+    st_cell_v = ParagraphStyle("cv", fontName="Helvetica", fontSize=8.1, leading=10.2, textColor=C_MARFIM)
+    st_cap = ParagraphStyle("cap", fontName="Helvetica-Bold", fontSize=7.9, leading=10.0, textColor=C_OURO_CLARO, alignment=TA_CENTER)
+    st_cap_sub = ParagraphStyle("caps", fontName="Helvetica", fontSize=7.0, leading=9.0, textColor=C_PRATA, alignment=TA_CENTER)
 
     larg_util = A4[0] - 30 * mm
+    telas = capturar_telas_reais_do_jogo()
     story = []
 
     # --- CABEÇALHO DUPLO DE IDENTIDADE (GoZygrid Studios + Logo Oficial Elos do Vazio) ---
-    logo_estudio = carregar_logo_gozygrid(40 * mm, 24 * mm)
-    logo_jogo = carregar_logo_jogo(114 * mm, 26 * mm)
+    logo_estudio = carregar_logo_gozygrid(40 * mm, 22 * mm)
+    logo_jogo = carregar_logo_jogo(112 * mm, 24 * mm)
 
     cabecalho = Table(
         [[logo_estudio, logo_jogo]],
@@ -568,35 +512,34 @@ def gerar_pdf_exposicao(destino_pdf):
         ("BACKGROUND", (0, 0), (-1, -1), C_PAINEL),
         ("BOX", (0, 0), (-1, -1), 1.2, C_OURO),
         ("LINEAFTER", (0, 0), (0, 0), 0.8, C_OURO_ESCURO),
-        ("TOPPADDING", (0, 0), (-1, -1), 4),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ("TOPPADDING", (0, 0), (-1, -1), 3.5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 3.5),
     ]))
     story.append(cabecalho)
-    story.append(Spacer(1, 2 * mm))
-    story.append(Paragraph("Ação, Plataforma 2D e Combate de Precisão em Dark Fantasy", st_sub))
-    story.append(Spacer(1, 1.5 * mm))
+    story.append(Spacer(1, 1.8 * mm))
+    story.append(Paragraph("Plataforma 2D & Combate Tático 2.5D em Dark Fantasy Medieval", st_sub))
+    story.append(Spacer(1, 1.2 * mm))
     story.append(_divisor_ouro(larg_util))
-    story.append(Spacer(1, 1.5 * mm))
+    story.append(Spacer(1, 1.2 * mm))
 
     # --- SINOPSE DO JOGO ---
     story.append(Paragraph("SINOPSE E DIREÇÃO DE ARTE", st_sec))
     story.append(Paragraph(
-        "Em <b>Elos do Vazio</b>, o último expedicionário desperta sob a luz pálida de uma cidadela partida para atravessar "
-        "sete câmaras interconectadas e enfrentar os guardiões que selam o coração do Éter. Combinando travessia ágil em "
-        "plataforma 2D com confrontos táticos de precisão — onde cada <i>parry</i>, esquiva e contra-ataque rúnico define a "
-        "sobrevivência — o título une arquitetura gótica em pixel art, iluminação volumétrica e trilha atmosférica.",
+        "Em <b>Elos do Vazio</b>, o Viajante desperta sob o luar de uma cidadela em ruínas para atravessar sete "
+        "câmaras interconectadas e derrotar os guardiões que selam o coração do Éter. Unindo travessia ágil em "
+        "plataforma 2D com combate tático 2.5D de reação em tempo real — onde <i>Parry Perfeito</i> [X], esquiva [C], "
+        "salto defensivo [ESPAÇO] e QTE ofensivo [Z] definem cada confronto — o projeto combina cantaria em pixel art e áudio atmosférico.",
         st_body,
     ))
-    story.append(Spacer(1, 2 * mm))
+    story.append(Spacer(1, 1.5 * mm))
 
     # --- FICHA TÉCNICA EDITORIAL ---
     story.append(Paragraph("FICHA TÉCNICA DO PROJETO", st_sec))
     dados_ficha = [
         [Paragraph("Desenvolvedor / Estúdio", st_cell_k), Paragraph("GoZygrid Studios", st_cell_v)],
-        [Paragraph("Motor / Tecnologia", st_cell_k), Paragraph("Python 3.12 & pygame-ce", st_cell_v)],
-        [Paragraph("Gênero", st_cell_k), Paragraph("Plataforma 2D / Ação / Dark Fantasy Medieval", st_cell_v)],
-        [Paragraph("Modos de Jogo", st_cell_k), Paragraph("Solo e Cooperativo Local (2 Jogadores com instâncias de controle isoladas)", st_cell_v)],
-        [Paragraph("Resolução Base", st_cell_k), Paragraph("960x540 com escala proporcional para Full HD e 4K", st_cell_v)],
+        [Paragraph("Motor / Tecnologia", st_cell_k), Paragraph("Python 3.10+ & pygame-ce (960x540 SCALED 16:9)", st_cell_v)],
+        [Paragraph("Gênero", st_cell_k), Paragraph("Plataforma 2D / Combate Tático 2.5D / Dark Fantasy", st_cell_v)],
+        [Paragraph("Modos & Controles", st_cell_k), Paragraph("Campanha (7 Salas), Boss Rush, Modo Bot [F2] • Teclado & Controle USB (Xbox/PS)", st_cell_v)],
     ]
     tb_ficha = Table(dados_ficha, colWidths=[46 * mm, larg_util - 46 * mm])
     tb_ficha.setStyle(TableStyle([
@@ -607,25 +550,28 @@ def gerar_pdf_exposicao(destino_pdf):
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("LEFTPADDING", (0, 0), (-1, -1), 6),
         ("RIGHTPADDING", (0, 0), (-1, -1), 6),
-        ("TOPPADDING", (0, 0), (-1, -1), 2.5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 2.5),
+        ("TOPPADDING", (0, 0), (-1, -1), 2.2),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 2.2),
     ]))
     story.append(tb_ficha)
-    story.append(Spacer(1, 2 * mm))
+    story.append(Spacer(1, 1.5 * mm))
 
-    # --- PAINEL DAS 7 SALAS DA MASMORRA (4 BIOMAS COM CAPTURAS REAIS) ---
-    story.append(Paragraph("AS 7 SALAS E OS 4 BIOMAS DA MASMORRA", st_sec))
+    # --- PAINEL DAS 7 SALAS DA MASMORRA (4 CAPTURAS REAIS DO JOGO) ---
+    story.append(Paragraph("AS 7 SALAS E OS 4 BIOMAS DA MASMORRA (CAPTURAS REAIS)", st_sec))
     infos_biomas = [
-        (0, "Salas 1 e 2 — Ameias e Pátio Superior", "Exterior noturno (Background_1.png), lua cheia, tochas de parede, mastros e saltos verticais em 3 alturas."),
-        (1, "Salas 3 e 4 — Galerias das Torres de Vigia", "Torres em paralaxe (Background_2.png), degraus rebaixados com portão ao solo e passarelas suspensas por correntes."),
-        (2, "Salas 5 e 6 — Catacumbas Subterrâneas", "Interior fechado em cantaria escura, grades de ferro, arcos, lápides, tochas frias e plataformas móveis."),
-        (3, "Sala 7 — Santuário do Guardião (Boss Room)", "Arena monumental de 960 px, pilares com gárgulas e portão de ferro titânico com fechadura rúnica."),
+        (0, "Salas 1 e 2 — Ameias e Pátio Superior", "Céu noturno, lua cheia, mastros com bandeiras, baús e emboscadas com Demon Carmesim e Orc."),
+        (1, "Salas 3 e 4 — Galerias das Torres de Vigia", "Torres em paralaxe, passarelas suspensas por correntes, chaves douradas e alavancas de portão."),
+        (2, "Salas 5 e 6 — Cripta e Catacumbas", "Teto fechado em cantaria escura, grades de ferro, lápides, tochas frias e plataformas móveis."),
+        (3, "Sala 7 — Santuário do Guardião (Boss Final)", "Arena monumental com 3 Relíquias Arcanas de Éter frente ao Bibliotecário do Vazio."),
     ]
-    w_cel = (larg_util - 4 * mm) / 2.0
+    w_cel = (larg_util - 3 * mm) / 2.0
     cards_bioma = []
     for b_idx, tit_b, desc_b in infos_biomas:
-        prev_pil = _desenhar_miniatura_bioma(b_idx, w=340, h=126)
-        rl_prev = _pil_para_rl_image(prev_pil, w_cel - 8 * mm, 22 * mm)
+        img_real = telas.get(f"bioma_{b_idx}")
+        if img_real is not None:
+            rl_prev = _pil_para_rl_image(img_real, w_cel - 5 * mm, 36 * mm)
+        else:
+            rl_prev = PlaceholderEmblema(w_cel - 5 * mm, 35 * mm, tit_b)
         sub_tab = Table(
             [[rl_prev], [Paragraph(tit_b, st_cap)], [Paragraph(desc_b, st_cap_sub)]],
             colWidths=[w_cel - 2 * mm],
@@ -633,8 +579,8 @@ def gerar_pdf_exposicao(destino_pdf):
         sub_tab.setStyle(TableStyle([
             ("ALIGN", (0, 0), (-1, -1), "CENTER"),
             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("TOPPADDING", (0, 0), (-1, -1), 1.5),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 1.5),
+            ("TOPPADDING", (0, 0), (-1, -1), 1.2),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 1.2),
         ]))
         cards_bioma.append(sub_tab)
 
@@ -647,41 +593,39 @@ def gerar_pdf_exposicao(destino_pdf):
         ("BOX", (0, 0), (-1, -1), 1.0, C_OURO),
         ("INNERGRID", (0, 0), (-1, -1), 0.7, C_OURO_ESCURO),
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("TOPPADDING", (0, 0), (-1, -1), 3),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+        ("TOPPADDING", (0, 0), (-1, -1), 2.5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 2.5),
     ]))
     story.append(tb_biomas)
-    story.append(Spacer(1, 2 * mm))
+    story.append(Spacer(1, 1.5 * mm))
 
-    # --- PAINEL DE COMBATE, MECÂNICAS E SPRITES DO PROTAGONISTA ---
-    story.append(Paragraph("COMBATE DE PRECISÃO, ÉTER E DIREÇÃO VISUAL", st_sec))
-    faixa_sprites = carregar_faixa_sprites_protagonista(114 * mm, 21 * mm)
-    amostra_atlas = carregar_amostra_atlas_cantaria(54 * mm, 21 * mm)
+    # --- PAINEL DE COMBATE 2.5D E MENU PRINCIPAL (CAPTURAS REAIS) ---
+    story.append(Paragraph("COMBATE TÁTICO 2.5D & INTERFACE DO JOGO", st_sec))
+    img_menu = telas.get("menu")
+    img_comb = telas.get("combate")
+    rl_menu = _pil_para_rl_image(img_menu, w_cel - 5 * mm, 36 * mm) if img_menu is not None else PlaceholderEmblema(w_cel - 5 * mm, 35 * mm, "MENU PRINCIPAL")
+    rl_comb = _pil_para_rl_image(img_comb, w_cel - 5 * mm, 36 * mm) if img_comb is not None else PlaceholderEmblema(w_cel - 5 * mm, 35 * mm, "COMBATE 2.5D")
 
-    txt_combate = Paragraph(
-        "<b>Parry Refinado & Hitstop:</b> Defesas cronometradas anulam golpes titânicos com congelamento de impacto, "
-        "faíscas de aço e contra-ataques imediatos.<br/>"
-        "<b>Impulsos Aéreos & Magias de Éter:</b> Saltos responsivos, corte aéreo e consumo estratégico de gemas de Éter "
-        "para desencadear habilidades em área como a <i>Dança do Éter</i>.",
-        st_body,
-    )
     tb_comb = Table(
         [
-            [faixa_sprites, amostra_atlas],
-            [txt_combate, Paragraph("<b>Atlas Gótico de Cantaria</b><br/>Tiles procedurais e peças de Final/Assets.", st_cap_sub)],
+            [rl_menu, rl_comb],
+            [
+                Paragraph("<b>Menu Principal & Modos:</b> Acesso à Campanha, Seleção de Salas, Boss Rush e Ranque.", st_cap_sub),
+                Paragraph("<b>Combate 2.5D:</b> Ordem de turnos, Parry [X] com hitstop, Esquiva [C] e Salto [ESPAÇO].", st_cap_sub),
+            ],
         ],
-        colWidths=[116 * mm, larg_util - 116 * mm],
+        colWidths=[w_cel, w_cel],
     )
     tb_comb.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, -1), C_PAINEL),
         ("BOX", (0, 0), (-1, -1), 1.0, C_OURO),
-        ("GRID", (0, 0), (-1, -1), 0.5, C_OURO_ESCURO),
-        ("ALIGN", (0, 0), (-1, 0), "CENTER"),
+        ("INNERGRID", (0, 0), (-1, -1), 0.6, C_OURO_ESCURO),
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("TOPPADDING", (0, 0), (-1, -1), 3),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-        ("LEFTPADDING", (0, 0), (-1, -1), 6),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING", (0, 0), (-1, -1), 2.5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 2.5),
+        ("LEFTPADDING", (0, 0), (-1, -1), 4),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 4),
     ]))
     story.append(tb_comb)
 

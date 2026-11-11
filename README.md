@@ -142,7 +142,7 @@ python main.py
 | **4** | **Torre de Vigia Suspensa** | Galerias das Torres de Vigia | Zelador do Mausoléu | Passarelas suspensas por correntes sobre o fosso e rotas bilaterais de retorno. |
 | **5** | **Catacumbas Subterrâneas** | Cripta e Catacumbas | Sentinela de Pedra | Teto fechado em cantaria escura, grades de ferro, lápides, arcos e tochas frias. |
 | **6** | **Cripta dos Ossos** | Cripta e Catacumbas | Rei da Lua Sangrenta | Plataformas móveis mecanizadas sobre trilhos e fossos com espinhos estreitos. |
-| **7** | **Santuário do Guardião** | Santuário do Guardião | Bibliotecário do Vazio | Arena plana monumental (960 px), gárgulas, 3 glifos de Éter e Portão Titânico Rúnico. |
+| **7** | **Santuário do Guardião** | Santuário do Guardião | Bibliotecário do Vazio | Arena plana monumental (960 px), pilares com estátuas, 3 relíquias de Éter e Portão Titânico Rúnico. |
 
 ---
 
