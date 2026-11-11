@@ -53,7 +53,7 @@
 
 ## Sobre o Jogo
 
-**Elos do Vazio** é um jogo de ação, plataforma 2D e combate tático 2.5D desenvolvido pela **GoZygrid Studios**. Ambientado em uma cidadela gótica arruinada pela queda dos selos de Éter, o Viajante deve cruzar **7 salas distribuídas em 4 biomas distintos**, destrancar portões de ferro por alavancas e chaves, dominar reações defensivas em tempo real (*Parry*, *Esquiva* e *Salto* sobre ondas sísmicas) e derrotar o guardião final.
+**Elos do Vazio** é um jogo de ação, plataforma 2D e combate tático 2.5D desenvolvido pela **GoZygrid Studios** com auxílio de **Inteligência Artificial**. Ambientado em uma cidadela gótica arruinada pela queda dos selos de Éter, o Viajante deve cruzar **7 salas distribuídas em 4 biomas distintos**, destrancar portões de ferro por alavancas e chaves, dominar reações defensivas em tempo real (*Parry*, *Esquiva* e *Salto* sobre ondas sísmicas) e derrotar o guardião final.
 
 ### Principais Características
 - **Abertura do Estúdio (`splash_estudio.py`):** sequência de entrada discreta com o emblema oficial da **GoZygrid Studios** antes do menu principal.
@@ -223,9 +223,10 @@ elos-do-vazio/
 - 📄 [**Painel Editorial de Exposição (`elos_do_vazio_exposicao.pdf`)**](elos_do_vazio_exposicao.pdf) — ficha técnica e vitrine dos 4 biomas.
 - 📜 [**Histórico de Versões (`CHANGELOG.md`)**](CHANGELOG.md) • [**Guia de Contribuição (`CONTRIBUTING.md`)**](CONTRIBUTING.md)
 - 🎵 **Áudio e SFX:** créditos detalhados em [`assets/audio/CREDITOS_AUDIO.txt`](assets/audio/CREDITOS_AUDIO.txt) (Flare RPG / FantasyCore — CC-BY-SA 3.0 / CC0).
+- 🤖 **Desenvolvimento:** projeto desenvolvido pela **GoZygrid Studios** com auxílio de **Inteligência Artificial**.
 - ⚖️ **Licença:** código-fonte Python sob licença [**MIT**](LICENSE).
 
 <div align="center">
   <br/>
-  <sub>Desenvolvido por <b>GoZygrid Studios</b> — Projeto <b>Elos do Vazio</b></sub>
+  <sub>Desenvolvido por <b>GoZygrid Studios</b> com auxílio de Inteligência Artificial — Projeto <b>Elos do Vazio</b></sub>
 </div>

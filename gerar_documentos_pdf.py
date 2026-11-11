@@ -536,7 +536,7 @@ def gerar_pdf_exposicao(destino_pdf):
     # --- FICHA TÉCNICA EDITORIAL ---
     story.append(Paragraph("FICHA TÉCNICA DO PROJETO", st_sec))
     dados_ficha = [
-        [Paragraph("Desenvolvedor / Estúdio", st_cell_k), Paragraph("GoZygrid Studios", st_cell_v)],
+        [Paragraph("Desenvolvedor / Estúdio", st_cell_k), Paragraph("GoZygrid Studios (desenvolvido com auxílio de Inteligência Artificial)", st_cell_v)],
         [Paragraph("Motor / Tecnologia", st_cell_k), Paragraph("Python 3.10+ & pygame-ce (960x540 SCALED 16:9)", st_cell_v)],
         [Paragraph("Gênero", st_cell_k), Paragraph("Plataforma 2D / Combate Tático 2.5D / Dark Fantasy", st_cell_v)],
         [Paragraph("Modos & Controles", st_cell_k), Paragraph("Campanha (7 Salas), Boss Rush, Modo Bot [F2] • Teclado & Controle USB (Xbox/PS)", st_cell_v)],
@@ -631,8 +631,8 @@ def gerar_pdf_exposicao(destino_pdf):
 
     doc.build(
         story,
-        onFirstPage=lambda c, d: _desenhar_fundo_pagina_escura(c, d, "GoZygrid Studios  ·  Exposição Oficial — Elos do Vazio"),
-        onLaterPages=lambda c, d: _desenhar_fundo_pagina_escura(c, d, "GoZygrid Studios  ·  Exposição Oficial — Elos do Vazio"),
+        onFirstPage=lambda c, d: _desenhar_fundo_pagina_escura(c, d, "GoZygrid Studios  ·  Elos do Vazio (Desenvolvido com auxílio de IA)"),
+        onLaterPages=lambda c, d: _desenhar_fundo_pagina_escura(c, d, "GoZygrid Studios  ·  Elos do Vazio (Desenvolvido com auxílio de IA)"),
     )
 
 
@@ -670,7 +670,7 @@ def gerar_pdf_guia_github(destino_pdf):
         [
             [logo_estudio, logo_jogo],
             [Paragraph("GUIA DE INSTALAÇÃO, RELEASES E CÓDIGO-FONTE (GITHUB)", st_banner_tit), ""],
-            [Paragraph("GoZygrid Studios  ·  Manual Técnico do Repositório Oficial — Elos do Vazio", st_banner_sub), ""],
+            [Paragraph("GoZygrid Studios  ·  Manual Técnico — Elos do Vazio (Desenvolvido com auxílio de IA)", st_banner_sub), ""],
         ],
         colWidths=[48 * mm, larg_util - 48 * mm],
     )
