@@ -1146,8 +1146,6 @@ class DiretorTrailer:
                 ataque_steps_baixo=1,
             )
             self._blitar_gameplay_em_1080(zoom=1.0)
-            tag_rush = self.fontes["mini"].render("BOSS RUSH  •  COMBATE POR TURNOS CONTRA OS 7 CHEFES", True, (253, 230, 138))
-            self.surf_1080.blit(tag_rush, (LARGURA_VIDEO // 2 - tag_rush.get_width() // 2, 52))
             self.particulas.desenhar_poeira_1080(self.surf_1080, t, fator_eter=0.75)
             fade_preto = int(255 * max(max(0.0, 1.0 - tl / 0.25), max(0.0, (tl - 2.8) / 0.3)))
 
