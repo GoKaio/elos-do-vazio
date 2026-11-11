@@ -286,7 +286,8 @@ class Animador:
 # ----------------------------------------------------------------------------
 _indice_cache = None
 _personagens = {}
-_BASE = os.path.dirname(os.path.abspath(__file__))
+_dir_atual = os.path.dirname(os.path.abspath(__file__))
+_BASE = os.path.dirname(_dir_atual) if os.path.basename(_dir_atual).lower() == "src" else _dir_atual
 
 
 def _pasta_assets():

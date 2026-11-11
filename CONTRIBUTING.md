@@ -26,7 +26,7 @@ Execute a compilação de sintaxe e uma inicialização rápida em modo *headles
 
 ```powershell
 python -m compileall -q .
-python -c "import os; os.environ.update({'SDL_VIDEODRIVER':'dummy','SDL_AUDIODRIVER':'dummy','HEADLESS':'1'}); import pygame; pygame.init(); pygame.display.set_mode((960,540)); from splash_estudio import AnimacaoAberturaEstudio; s=AnimacaoAberturaEstudio(); s.update(0.1); print('OK')"
+python -c "import os, sys; sys.path.insert(0, os.path.abspath('src')); os.environ.update({'SDL_VIDEODRIVER':'dummy','SDL_AUDIODRIVER':'dummy','HEADLESS':'1'}); import pygame; pygame.init(); pygame.display.set_mode((960,540)); from splash_estudio import AnimacaoAberturaEstudio; s=AnimacaoAberturaEstudio(); s.update(0.1); print('OK')"
 ```
 
 ## Boas Práticas

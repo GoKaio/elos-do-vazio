@@ -53,7 +53,12 @@ except ImportError as exc:
     ) from exc
 
 
-RAIZ = os.path.dirname(os.path.abspath(__file__))
+DIR_TOOLS = os.path.dirname(os.path.abspath(__file__))
+RAIZ = os.path.dirname(DIR_TOOLS)
+DIR_SRC = os.path.join(RAIZ, "src")
+for _p in (DIR_SRC, RAIZ):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
 # Paleta Editorial Dark Fantasy — Elos do Vazio
 HEX_FUNDO = "#0B0F19"
@@ -742,7 +747,7 @@ def gerar_pdf_guia_github(destino_pdf):
         "python -m venv venv<br/>"
         "venv\\Scripts\\activate<br/>"
         "pip install -r requirements.txt<br/><br/>"
-        "# 3. Executar o jogo (ou .\\build_tudo.bat para compilar o .exe)<br/>"
+        "# 3. Executar o jogo (ou .\\tools\\build_tudo.bat para compilar o .exe)<br/>"
         "python main.py",
         st_code,
     )
@@ -761,14 +766,12 @@ def gerar_pdf_guia_github(destino_pdf):
     # --- SEÇÃO 3: MAPA DA ESTRUTURA DE ARQUIVOS DO REPOSITÓRIO ---
     story.append(Paragraph("SEÇÃO 3 — MAPA DA ESTRUTURA DE ARQUIVOS DO REPOSITÓRIO", st_h1))
     arvore = [
-        [Paragraph("elos-do-vazio/", st_tree_k), Paragraph("Diretório raiz do projeto distribuído pela GoZygrid Studios", st_step_v)],
-        [Paragraph("|-- main.py", st_tree_k), Paragraph("Loop principal (960x540 virtual), câmera, física 2D, controle/teclado e máquina de estados.", st_step_v)],
-        [Paragraph("|-- cenarios.py", st_tree_k), Paragraph("Renderizador de cenários, tileset 32x32 PixelArray, fundos em paralaxe, tochas e portões.", st_step_v)],
-        [Paragraph("|-- gerenciador_salas.py", st_tree_k), Paragraph("Construtores das 7 salas em 4 biomas e loader automático do pacote Legacy-Dungeon (Final/Assets).", st_step_v)],
-        [Paragraph("|-- sprites.py / config.py", st_tree_k), Paragraph("Loader modular de sprites (Hero/Inimigos/Chefes) e balanceamento global do jogo.", st_step_v)],
-        [Paragraph("|-- combate.py / cenario_combate_25d.py", st_tree_k), Paragraph("Sistema tático de turnos com parry, QTE ofensivo, hitstop e arenas 2.5D por sala.", st_step_v)],
-        [Paragraph("|-- instalador_gui.py / build_instalador.py", st_tree_k), Paragraph("Instalador gráfico 800x500 com música tema, atalhos Windows e empacotamento PyInstaller.", st_step_v)],
-        [Paragraph("+-- assets/", st_tree_k), Paragraph("Logos, sprites do herói/inimigos, sons/músicas e recursos visuais (Legacy-Dungeon).", st_step_v)],
+        [Paragraph("elos-do-vazio/", st_tree_k), Paragraph("Raiz enxuta: main.py, JOGAR.bat, INSTALAR_DEPENDENCIAS.bat e README.md", st_step_v)],
+        [Paragraph("|-- src/", st_tree_k), Paragraph("Núcleo do jogo: menu, cenarios, gerenciador_salas, combate 2.5D, player, inimigos e sprites.", st_step_v)],
+        [Paragraph("|-- docs/", st_tree_k), Paragraph("Guias (LEIA-ME.txt, COMO_JOGAR.txt, bosses), PDFs editoriais e screenshots/ reais.", st_step_v)],
+        [Paragraph("|-- tools/", st_tree_k), Paragraph("Instalador gótico (instalador_gui.py), build_instalador.py, gerar_trailer.py e PDFs.", st_step_v)],
+        [Paragraph("|-- assets/", st_tree_k), Paragraph("Logos, sprites do herói/inimigos, sons/músicas e recursos visuais (Legacy-Dungeon).", st_step_v)],
+        [Paragraph("+-- .github/", st_tree_k), Paragraph("Workflows CI automáticos no GitHub Actions e templates de Issue / Pull Request.", st_step_v)],
     ]
     tb_tree = Table(arvore, colWidths=[66 * mm, larg_util - 66 * mm])
     tb_tree.setStyle(TableStyle([
@@ -788,8 +791,10 @@ def gerar_pdf_guia_github(destino_pdf):
 
 
 def main():
-    out_exposicao = os.path.join(RAIZ, "elos_do_vazio_exposicao.pdf")
-    out_guia = os.path.join(RAIZ, "elos_do_vazio_guia_github.pdf")
+    docs_dir = os.path.join(RAIZ, "docs")
+    os.makedirs(docs_dir, exist_ok=True)
+    out_exposicao = os.path.join(docs_dir, "elos_do_vazio_exposicao.pdf")
+    out_guia = os.path.join(docs_dir, "elos_do_vazio_guia_github.pdf")
     gerar_pdf_exposicao(out_exposicao)
     print(f"[OK] PDF de Exposição gerado: {out_exposicao}")
     gerar_pdf_guia_github(out_guia)

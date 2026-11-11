@@ -18,9 +18,12 @@ import subprocess
 import sys
 
 
-RAIZ = os.path.dirname(os.path.abspath(__file__))
-if RAIZ not in sys.path:
-    sys.path.insert(0, RAIZ)
+DIR_TOOLS = os.path.dirname(os.path.abspath(__file__))
+RAIZ = os.path.dirname(DIR_TOOLS)
+DIR_SRC = os.path.join(RAIZ, "src")
+for _p in (DIR_SRC, RAIZ):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 os.chdir(RAIZ)
 
 MP4_PADRAO = os.path.join(RAIZ, "trailer_elos_do_vazio.mp4")
@@ -189,7 +192,7 @@ def converter_trailer_para_gif(
 
     if not os.path.isfile(mp4_path):
         raise FileNotFoundError(
-            f"Trailer não encontrado em '{mp4_path}'. Execute antes `python gerar_trailer.py`."
+            f"Trailer não encontrado em '{mp4_path}'. Execute antes `python tools/gerar_trailer.py`."
         )
 
     os.makedirs(os.path.dirname(os.path.abspath(gif_path)), exist_ok=True)

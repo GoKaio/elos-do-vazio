@@ -15,10 +15,15 @@ import os
 import sys
 import zipfile
 
+
+DIR_TOOLS = os.path.dirname(os.path.abspath(__file__))
+RAIZ = os.path.dirname(DIR_TOOLS)
+DIR_SRC = os.path.join(RAIZ, "src")
+for _p in (DIR_TOOLS, DIR_SRC, RAIZ):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+
 import build_exe
-
-
-RAIZ = os.path.dirname(os.path.abspath(__file__))
 
 
 def extrair_assets_legacy_dungeon_se_presente():

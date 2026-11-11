@@ -1,5 +1,5 @@
-$ErrorActionPreference = "Continue"
-Set-Location -LiteralPath $PSScriptRoot
+﻿$ErrorActionPreference = "Continue"
+Set-Location -LiteralPath (Split-Path -Parent $PSScriptRoot)
 
 Write-Host "==================================================================" -ForegroundColor Yellow
 Write-Host "  ELOS DO VAZIO — CRIAR REPOSITÓRIO E PUBLICAR NO GITHUB (GoKaio)" -ForegroundColor Yellow
@@ -18,16 +18,16 @@ Write-Host "[Git] Conta configurada: $gitUser" -ForegroundColor Cyan
 if (-not (Test-Path "assets\trailer_preview.gif") -or -not (Test-Path "assets\logo_gozygrid.png")) {
     if (-not (Test-Path "trailer_elos_do_vazio.mp4")) {
         Write-Host "[1/4] Gerando trailer oficial (trailer_elos_do_vazio.mp4)..." -ForegroundColor Cyan
-        python gerar_trailer.py
+        python tools\gerar_trailer.py
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     }
     Write-Host "[2/4] Extraindo prévia GIF (640px) e logo GoZygrid Studios para assets/..." -ForegroundColor Cyan
-    python converter_trailer_gif.py
+    python tools\converter_trailer_gif.py
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
 
 Write-Host "[3/4] Atualizando PDFs de documentação (página única)..." -ForegroundColor Cyan
-python gerar_documentos_pdf.py
+python tools\gerar_documentos_pdf.py
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 # 2) Inicializa repositório local na branch main

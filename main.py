@@ -15,16 +15,18 @@ def resource_path(relative_path):
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), relative_path)
 
 
+_dir_script = os.path.dirname(os.path.abspath(__file__))
+_dir_src = os.path.join(_dir_script, "src")
+for _p in (_dir_src, _dir_script):
+    if os.path.isdir(_p) and _p not in sys.path:
+        sys.path.insert(0, _p)
+
 import caminhos
 caminhos.instalar_tratador_excecoes()
 try:
     os.chdir(caminhos.obter_dir_base())
 except Exception:
     pass
-
-_dir_script = os.path.dirname(os.path.abspath(__file__))
-if _dir_script not in sys.path:
-    sys.path.insert(0, _dir_script)
 import math
 import random
 from types import SimpleNamespace

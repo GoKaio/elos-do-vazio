@@ -167,22 +167,22 @@ python main.py
 ### Compilação via PyInstaller (Windows)
 ```powershell
 # Automação completa (.bat): instala deps, compila o jogo e empacota o instalador
-.\build_tudo.bat
+.\tools\build_tudo.bat
 ```
 Ou diretamente via Python:
 ```powershell
 pip install pyinstaller pillow pygame-ce
-python build_instalador.py --all            # Gera dist/Elos_do_Vazio/ + dist_installer/Instalador_Elos_do_Vazio.exe
-python build_instalador.py --only-installer # Reempacota apenas o instalador
-python build_exe.py                         # Compila somente o executável do jogo
+python tools/build_instalador.py --all            # Gera dist/Elos_do_Vazio/ + dist_installer/Instalador_Elos_do_Vazio.exe
+python tools/build_instalador.py --only-installer # Reempacota apenas o instalador
+python tools/build_exe.py                         # Compila somente o executável do jogo
 ```
 
 ### Ferramentas de Mídia e Documentação
 | Script | Finalidade | Saída Gerada |
 | :--- | :--- | :--- |
-| `gerar_trailer.py` | Renderiza trailer cinematográfico 1920x1080 @ 60 FPS com áudio | `trailer_elos_do_vazio.mp4` |
-| `converter_trailer_gif.py` | Extrai trecho de combate otimizado em GIF 640px para GitHub | `assets/trailer_preview.gif` |
-| `gerar_documentos_pdf.py` | Gera os PDFs editoriais (Exposição e Manual Técnico GitHub) | `elos_do_vazio_exposicao.pdf` / `elos_do_vazio_guia_github.pdf` |
+| `tools/gerar_trailer.py` | Renderiza trailer cinematográfico 1920x1080 @ 60 FPS com áudio | `trailer_elos_do_vazio.mp4` |
+| `tools/converter_trailer_gif.py` | Extrai trecho de combate otimizado em GIF 640px para GitHub | `assets/trailer_preview.gif` |
+| `tools/gerar_documentos_pdf.py` | Gera os PDFs editoriais (Exposição e Manual Técnico GitHub) | `docs/elos_do_vazio_exposicao.pdf` / `docs/elos_do_vazio_guia_github.pdf` |
 
 </details>
 
@@ -193,34 +193,27 @@ python build_exe.py                         # Compila somente o executável do j
 ```text
 elos-do-vazio/
 ├── .github/                      # Workflows CI (Actions) e templates de Issue / PR
-├── docs/screenshots/             # Capturas reais do menu, exploração, combate 2.5D e instalador
 ├── assets/                       # Logos, sprites, trilha/SFX (.ogg) e preview GIF
-├── main.py                       # Loop principal (960x540 SCALED), física 2D e estados
-├── splash_estudio.py             # Abertura discreta da GoZygrid Studios ao iniciar o jogo
-├── menu.py                       # Menu principal, seleção de salas, perfil e ranking
-├── gerenciador_salas.py          # Construtores das 7 salas, 4 biomas e loader Legacy-Dungeon
-├── cenarios.py                   # Tileset autotile 32x32 (PixelArray), paralaxe, tochas e portões
-├── combate.py                    # Sistema tático por turnos, QTE, parry, hitstop e câmera
-├── cenario_combate_25d.py        # Arena 2.5D com projeção cônica e piso 1/Z
-├── sprites.py                    # Loader/animador modular de sprites e combatentes
-├── instalador_gui.py             # Instalador gráfico 800x500 com música e atalhos .lnk
-├── build_instalador.py           # Orquestrador de payload ZIP + Instalador PyInstaller
-├── build_exe.py                  # Gerador de ícone .ico e compilação PyInstaller do jogo
-├── build_tudo.bat                # Automação completa Windows (deps + exe + instalador)
-├── elos_do_vazio_guia_github.pdf # Manual Técnico GitHub & Instalação (PDF)
-├── elos_do_vazio_exposicao.pdf   # Painel Editorial de Exposição (PDF)
+├── docs/                         # Manuais (.txt/.html), PDFs editoriais e screenshots/ reais
+├── src/                          # Núcleo do jogo (menu, salas, cenários, combate 2.5D, IA, sprites)
+├── tools/                        # Instalador gótico, scripts PyInstaller (.exe) e mídia/PDFs
+├── main.py                       # Ponto de entrada do jogo (loop 960x540 SCALED)
+├── JOGAR.bat                     # Atalho Windows para iniciar o jogo
+├── INSTALAR_DEPENDENCIAS.bat     # Script Windows de criação de ambiente e dependências
+├── requirements.txt              # Dependências Python (pygame-ce>=2.5.0)
+├── README.md                     # Visão geral, galeria e instruções do repositório
 ├── CHANGELOG.md                  # Histórico de versões
 ├── CONTRIBUTING.md               # Guia de contribuição e testes headless
-├── LICENSE                       # Licença MIT (código-fonte) e notas de assets
-└── requirements.txt              # Dependências Python (pygame-ce>=2.5.0)
+└── LICENSE                       # Licença MIT (código-fonte) e notas de assets
 ```
 
 ---
 
 ## Documentação e Créditos
 
-- 📄 [**Manual Técnico GitHub & Instalação (`elos_do_vazio_guia_github.pdf`)**](elos_do_vazio_guia_github.pdf) — guia ilustrado em PDF de página única.
-- 📄 [**Painel Editorial de Exposição (`elos_do_vazio_exposicao.pdf`)**](elos_do_vazio_exposicao.pdf) — ficha técnica e vitrine dos 4 biomas.
+- 📄 [**Manual Técnico GitHub & Instalação (`docs/elos_do_vazio_guia_github.pdf`)**](docs/elos_do_vazio_guia_github.pdf) — guia ilustrado em PDF de página única.
+- 📄 [**Painel Editorial de Exposição (`docs/elos_do_vazio_exposicao.pdf`)**](docs/elos_do_vazio_exposicao.pdf) — ficha técnica e vitrine dos 4 biomas.
+- 📖 **Guias de Jogabilidade:** [`docs/COMO_JOGAR.txt`](docs/COMO_JOGAR.txt) • [`docs/GUIA_PERSONAGENS_E_INIMIGOS.txt`](docs/GUIA_PERSONAGENS_E_INIMIGOS.txt) • [`docs/GUIA_TODOS_OS_BOSSES.txt`](docs/GUIA_TODOS_OS_BOSSES.txt)
 - 📜 [**Histórico de Versões (`CHANGELOG.md`)**](CHANGELOG.md) • [**Guia de Contribuição (`CONTRIBUTING.md`)**](CONTRIBUTING.md)
 - 🎵 **Áudio e SFX:** créditos detalhados em [`assets/audio/CREDITOS_AUDIO.txt`](assets/audio/CREDITOS_AUDIO.txt) (Flare RPG / FantasyCore — CC-BY-SA 3.0 / CC0).
 - 🤖 **Desenvolvimento:** projeto desenvolvido pela **GoZygrid Studios** com auxílio de **Inteligência Artificial**.

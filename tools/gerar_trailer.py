@@ -23,9 +23,12 @@ import wave
 import zipfile
 
 
-RAIZ = os.path.dirname(os.path.abspath(__file__))
-if RAIZ not in sys.path:
-    sys.path.insert(0, RAIZ)
+DIR_TOOLS = os.path.dirname(os.path.abspath(__file__))
+RAIZ = os.path.dirname(DIR_TOOLS)
+DIR_SRC = os.path.join(RAIZ, "src")
+for _p in (DIR_SRC, RAIZ):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 os.chdir(RAIZ)
 
 LARGURA_VIDEO = 1920

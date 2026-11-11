@@ -21,15 +21,15 @@ AllowNoIcons=yes
 ; Permite instalar sem privilégios de administrador em máquinas de exposição/escola
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=commandline dialog
-OutputDir=dist_installer
+OutputDir=..\dist_installer
 OutputBaseFilename=Instalador_Elos_do_Vazio_Inno
-SetupIconFile=assets\icone_jogo.ico
+SetupIconFile=..\assets\icone_jogo.ico
 WizardStyle=modern
 WizardImageFile=installer_assets\wizard_side.bmp
 WizardSmallImageFile=installer_assets\wizard_small.bmp
 Compression=lzma2/ultra64
 SolidCompression=yes
-InfoBeforeFile=LEIA-ME.txt
+InfoBeforeFile=..\docs\LEIA-ME.txt
 
 [Languages]
 Name: "brazilianportuguese"; MessagesFile: "compiler:Languages\BrazilianPortuguese.isl"
@@ -39,7 +39,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: checkedonce
 
 [Files]
-Source: "dist\Elos_do_Vazio\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\dist\Elos_do_Vazio\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\_internal\assets\icone_jogo.ico"

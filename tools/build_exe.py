@@ -16,10 +16,16 @@ import sys
 import zipfile
 
 
-RAIZ = os.path.dirname(os.path.abspath(__file__))
+RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DIR_SRC = os.path.join(RAIZ, "src")
+DIR_DOCS = os.path.join(RAIZ, "docs")
+DIR_TOOLS = os.path.join(RAIZ, "tools")
+for _p in (DIR_SRC, RAIZ):
+    if os.path.isdir(_p) and _p not in sys.path:
+        sys.path.insert(0, _p)
+
 ICONE_REL = os.path.join("assets", "icone_jogo.ico")
 ICONE_ABS = os.path.join(RAIZ, ICONE_REL)
-ICONE_RAIZ = os.path.join(RAIZ, "icon.ico")
 PAYLOAD_DIR = os.path.join(RAIZ, "build_payload")
 PAYLOAD_ZIP = os.path.join(PAYLOAD_DIR, "elos_do_vazio_payload.zip")
 DIST_JOGO = os.path.join(RAIZ, "dist", "Elos_do_Vazio")
@@ -28,7 +34,7 @@ DIST_INSTALLER = os.path.join(RAIZ, "dist_installer")
 
 def garantir_icone_jogo():
     """
-    Garante que assets/icone_jogo.ico e icon.ico sejam arquivos Windows ICO válidos
+    Garante que assets/icone_jogo.ico seja um arquivo Windows ICO válido
     multi-resolução (16..256px RGBA), evitando falha no compilador de recursos do PyInstaller.
     """
     from PIL import Image, ImageDraw
@@ -43,21 +49,10 @@ def garantir_icone_jogo():
         except Exception:
             precisa_gerar = True
 
-    raiz_invalido = True
-    if os.path.exists(ICONE_RAIZ):
-        try:
-            with Image.open(ICONE_RAIZ) as chk2:
-                if chk2.format == "ICO":
-                    raiz_invalido = False
-        except Exception:
-            raiz_invalido = True
-
-    if precisa_gerar or raiz_invalido:
+    if precisa_gerar:
         fonte_logo = os.path.join(RAIZ, "assets", "ui", "logo_elos_do_vazio.png")
         if os.path.exists(fonte_logo):
             src = Image.open(fonte_logo).convert("RGBA")
-        elif os.path.exists(ICONE_RAIZ):
-            src = Image.open(ICONE_RAIZ).convert("RGBA")
         else:
             src = Image.new("RGBA", (512, 512), (15, 15, 26, 255))
 
@@ -82,7 +77,6 @@ def garantir_icone_jogo():
 
         tamanhos = [(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)]
         tela_ico.save(ICONE_ABS, format="ICO", sizes=tamanhos)
-        tela_ico.save(ICONE_RAIZ, format="ICO", sizes=tamanhos)
         print(f"[build_exe] Ícone multi-resolução gerado com sucesso: {ICONE_ABS}")
     else:
         print(f"[build_exe] Ícone válido detectado: {ICONE_ABS}")
@@ -98,20 +92,17 @@ def _coletar_datas_jogo():
         if os.path.isdir(p_abs):
             datas.append((p_abs, pasta))
 
-    # Inclui tools apenas se houver scripts/assets diretos (ignorando repositórios de referência git)
-    tools_abs = os.path.join(RAIZ, "tools")
-    if os.path.isdir(tools_abs):
-        for nome in os.listdir(tools_abs):
-            if nome in ("repos_ref", "__pycache__"):
-                continue
-            item = os.path.join(tools_abs, nome)
-            if os.path.isfile(item) and not item.endswith(".pyc"):
-                datas.append((item, "tools"))
+    ui_pos_src = os.path.join(DIR_SRC, "elos_do_vazio_ui_positions.json")
+    if os.path.isfile(ui_pos_src):
+        datas.append((ui_pos_src, "."))
 
-    for arq in ("elos_do_vazio_ui_positions.json", "LEIA-ME.txt", "COMO_JOGAR.txt", "GUIA_PERSONAGENS_E_INIMIGOS.txt", "icon.ico"):
-        arq_abs = os.path.join(RAIZ, arq)
+    for doc_nome in ("LEIA-ME.txt", "COMO_JOGAR.txt", "GUIA_PERSONAGENS_E_INIMIGOS.txt"):
+        arq_abs = os.path.join(DIR_DOCS, doc_nome)
         if os.path.isfile(arq_abs):
             datas.append((arq_abs, "."))
+
+    if os.path.isfile(ICONE_ABS):
+        datas.append((ICONE_ABS, "."))
     return datas
 
 
@@ -141,6 +132,7 @@ def compilar_jogo(onefile=False):
         "--noconsole",
         "--name", "Elos_do_Vazio",
         "--icon", icone,
+        "--paths", DIR_SRC,
         "--collect-all", "pygame",
         "--collect-all", "pygame_ce",
         "--hidden-import", "pygame",
@@ -229,14 +221,38 @@ def compilar_instalador():
         "--distpath", DIST_INSTALLER,
         "--workpath", os.path.join(RAIZ, "build_installer_work"),
         "--specpath", os.path.join(RAIZ, "build_installer_work"),
+        "--paths", DIR_SRC,
         "--icon", icone,
         "--collect-all", "pygame",
         "--hidden-import", "ui_procedural",
+        "--hidden-import", "sprites",
+        "--hidden-import", "config",
+        "--hidden-import", "caminhos",
         "--hidden-import", "tkinter",
         "--hidden-import", "tkinter.filedialog",
         "--add-data", f"{PAYLOAD_ZIP}{os.pathsep}payload",
         "--add-data", f"{icone}{os.pathsep}assets",
     ]
+    try:
+        import sprites as _sp_inst
+        _indice_sp = _sp_inst.indexar_assets(os.path.join(RAIZ, "assets"))
+        _arqs_sp = set()
+        for _ch in ("hero", "soldier", "orcvazio", "orc", "bossguardiao"):
+            _ent = _indice_sp.get(_ch) or _indice_sp.get(_sp_inst._ALIASES.get(_ch, ""))
+            if not _ent:
+                for _k, _v in _indice_sp.items():
+                    if _ch in _k or _k in _ch:
+                        _ent = _v
+                        break
+            if not _ent:
+                continue
+            _caminho_idle = _ent["anims"].get("idle")
+            if _caminho_idle and os.path.isfile(_caminho_idle) and _caminho_idle not in _arqs_sp:
+                _rel_dir = os.path.dirname(os.path.relpath(_caminho_idle, RAIZ))
+                cmd.extend(["--add-data", f"{_caminho_idle}{os.pathsep}{_rel_dir}"])
+                _arqs_sp.add(_caminho_idle)
+    except Exception as _exc_sp:
+        print(f"[build_exe] Aviso ao coletar sprites do instalador: {_exc_sp}")
     sons_dir = os.path.join(RAIZ, "assets", "sons")
     if os.path.isdir(sons_dir):
         cmd.extend(["--add-data", f"{sons_dir}{os.pathsep}{os.path.join('assets', 'sons')}"])
@@ -244,7 +260,7 @@ def compilar_instalador():
         bg_path = os.path.join(RAIZ, "assets", "final_pack", bg_nome)
         if os.path.isfile(bg_path):
             cmd.extend(["--add-data", f"{bg_path}{os.pathsep}{os.path.join('assets', 'final_pack')}"])
-    cmd.append(os.path.join(RAIZ, "instalador_gui.py"))
+    cmd.append(os.path.join(DIR_TOOLS, "instalador_gui.py"))
 
     print("[build_exe] Compilando Instalador_Elos_do_Vazio.exe...")
     res = subprocess.run(cmd, cwd=RAIZ)

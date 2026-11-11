@@ -29,7 +29,20 @@ import wave
 import zipfile
 import pygame
 
+if not getattr(sys, "frozen", False):
+    _dir_tools = os.path.dirname(os.path.abspath(__file__))
+    _dir_raiz = os.path.dirname(_dir_tools)
+    _dir_src = os.path.join(_dir_raiz, "src")
+    for _p in (_dir_src, _dir_raiz):
+        if _p not in sys.path:
+            sys.path.insert(0, _p)
+
 import ui_procedural
+from config import CONFIG
+try:
+    from sprites import criar_animador
+except Exception:
+    criar_animador = None
 
 
 LARGURA_JANELA = 800
@@ -46,8 +59,15 @@ def resource_path(relative_path):
     bases = []
     if hasattr(sys, "_MEIPASS"):
         bases.append(sys._MEIPASS)
-    bases.append(os.path.dirname(os.path.abspath(__file__)))
-    bases.append(os.path.abspath("."))
+    dir_atual = os.path.dirname(os.path.abspath(__file__))
+    dir_raiz = os.path.dirname(dir_atual)
+    bases.extend([
+        dir_raiz,
+        os.path.join(dir_raiz, "src"),
+        os.path.join(dir_raiz, "docs"),
+        dir_atual,
+        os.path.abspath("."),
+    ])
     for base in bases:
         candidato = os.path.join(base, relative_path)
         if os.path.exists(candidato):
@@ -398,15 +418,27 @@ class AudioInstalador:
 
 class FundoVivoCidadela:
     """
-    Cenário gótico vivo atrás do cartão central do instalador (igual ao vídeo referência):
+    Cenário gótico vivo atrás do cartão central do instalador:
     céu noturno com lua pálida, silhuetas das ruínas, piso de pedra, tochas nas laterais
-    e bonecos pixelados (Cavaleiro à esquerda e Guardião à direita) respirando nas extremidades.
+    e os sprites oficiais (Viajante à esquerda e Orc Vazio à direita) animados nas extremidades.
     """
 
     def __init__(self, w=LARGURA_JANELA, h=ALTURA_JANELA):
         self.w = w
         self.h = h
         self._bg_estatico = self._construir_fundo_base()
+        self._anim_heroi = None
+        self._anim_rival = None
+        if criar_animador is not None:
+            try:
+                self._anim_heroi = criar_animador([CONFIG.get("sprite_jogador", "Hero"), "Hero", "Soldier"])
+                if self._anim_heroi.ativo:
+                    self._anim_heroi.tocar("idle", loop=True, forcar=True)
+                self._anim_rival = criar_animador(["Orc Vazio", "Orc", "Boss_Guardiao"])
+                if self._anim_rival.ativo:
+                    self._anim_rival.tocar("idle", loop=True, forcar=True)
+            except Exception:
+                pass
         self._particulas = [
             {
                 "x": random.uniform(0, w),
@@ -486,23 +518,27 @@ class FundoVivoCidadela:
             if p["y"] < 12:
                 p["y"] = self.h - 62
                 p["x"] = random.uniform(10, self.w - 10)
+        if self._anim_heroi and self._anim_heroi.ativo:
+            self._anim_heroi.tocar("idle")
+            self._anim_heroi.update(dt)
+        if self._anim_rival and self._anim_rival.ativo:
+            self._anim_rival.tocar("idle")
+            self._anim_rival.update(dt)
 
     def _desenhar_guarda_esquerdo(self, surface, cx, pe_y, tempo):
-        """Cavaleiro pixelado respirando na borda inferior esquerda (emoldura o cartão)."""
+        """Cavaleiro pixelado respirando na borda inferior esquerda (fallback caso sprite ausente)."""
         resp = int(round(math.sin(tempo * 3.0) * 1.5))
         pygame.draw.ellipse(surface, (4, 6, 12), (cx - 18, pe_y - 4, 36, 9))
-        # Capa azul escura e armadura em pixel-blocks
         pygame.draw.polygon(surface, (30, 58, 138), [(cx - 10, pe_y - 34 + resp), (cx - 20, pe_y - 6), (cx + 4, pe_y - 6)])
         pygame.draw.rect(surface, (51, 65, 85), (cx - 9, pe_y - 32 + resp, 18, 24))
         pygame.draw.rect(surface, (148, 163, 184), (cx - 10, pe_y - 48 + resp, 20, 16), border_radius=3)
         pygame.draw.rect(surface, (15, 23, 42), (cx - 4, pe_y - 41 + resp, 12, 4))
         pygame.draw.rect(surface, (56, 189, 248), (cx + 1, pe_y - 40 + resp, 5, 2))
-        # Espada em guarda
         pygame.draw.line(surface, (226, 232, 240), (cx + 10, pe_y - 22 + resp), (cx + 22, pe_y - 44 + resp), 2)
         pygame.draw.line(surface, (245, 158, 11), (cx + 7, pe_y - 24 + resp), (cx + 13, pe_y - 20 + resp), 2)
 
     def _desenhar_boss_direito(self, surface, cx, pe_y, tempo):
-        """Sentinela/Orc gótico à direita emoldurando a base do instalador."""
+        """Sentinela/Orc gótico à direita emoldurando a base do instalador (fallback caso sprite ausente)."""
         resp = int(round(math.sin(tempo * 2.6 + 1.4) * 1.8))
         pygame.draw.ellipse(surface, (4, 6, 12), (cx - 20, pe_y - 4, 40, 10))
         pygame.draw.rect(surface, (64, 24, 38), (cx - 12, pe_y - 38 + resp, 24, 30), border_radius=3)
@@ -519,7 +555,7 @@ class FundoVivoCidadela:
         # Tochas suaves nos cantos externos (SRCALPHA sem BLEND_ADD)
         for tx in (36, self.w - 36):
             osc = math.sin(tempo * 7.2 + tx)
-            ty = y_solo - 82
+            ty = y_solo - 102
             sh = pygame.Surface((74, 74), pygame.SRCALPHA)
             pygame.draw.circle(sh, (249, 115, 22, 22), (37, 37), int(32 + osc * 3))
             pygame.draw.circle(sh, (254, 240, 138, 44), (37, 37), 11)
@@ -528,9 +564,26 @@ class FundoVivoCidadela:
             pygame.draw.polygon(surface, (249, 115, 22), [(tx - 4, ty), (tx + int(osc), ty - 14), (tx + 4, ty)])
             pygame.draw.circle(surface, (254, 240, 138), (tx, ty - 4), 2)
 
-        # Personagens vivos nas bordas inferiores do cenário atrás do cartão
-        self._desenhar_guarda_esquerdo(surface, 36, y_solo + 6, tempo)
-        self._desenhar_boss_direito(surface, self.w - 38, y_solo + 6, tempo)
+        # Personagens oficiais do jogo nas bordas inferiores do cenário atrás do cartão
+        if self._anim_heroi and self._anim_heroi.ativo:
+            r_h = pygame.Rect(0, 0, 52, 72)
+            r_h.midbottom = (34, y_solo + 8)
+            s_sh = pygame.Surface((46, 10), pygame.SRCALPHA)
+            pygame.draw.ellipse(s_sh, (70, 55, 45, 165), (0, 0, 46, 10))
+            surface.blit(s_sh, (r_h.centerx - 23, r_h.bottom - 6))
+            self._anim_heroi.desenhar(surface, r_h, espelhar=False)
+        else:
+            self._desenhar_guarda_esquerdo(surface, 36, y_solo + 6, tempo)
+
+        if self._anim_rival and self._anim_rival.ativo:
+            r_r = pygame.Rect(0, 0, 56, 76)
+            r_r.midbottom = (self.w - 34, y_solo + 8)
+            s_sr = pygame.Surface((48, 10), pygame.SRCALPHA)
+            pygame.draw.ellipse(s_sr, (70, 55, 45, 165), (0, 0, 48, 10))
+            surface.blit(s_sr, (r_r.centerx - 24, r_r.bottom - 6))
+            self._anim_rival.desenhar(surface, r_r, espelhar=True)
+        else:
+            self._desenhar_boss_direito(surface, self.w - 38, y_solo + 6, tempo)
 
         for p in self._particulas:
             cor = ui_procedural.COR_AZUL_ETER if p["eter"] else ui_procedural.COR_OURO_VIVO
@@ -610,7 +663,8 @@ class InstaladorApp:
         zip_path = resource_path(PAYLOAD_ZIP_RELATIVO)
         if os.path.isfile(zip_path):
             return ("zip", zip_path)
-        dist_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dist", "Elos_do_Vazio")
+        dir_raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        dist_dir = os.path.join(dir_raiz, "dist", "Elos_do_Vazio")
         if os.path.isdir(dist_dir) and os.path.isfile(os.path.join(dist_dir, NOME_EXECUTAVEL)):
             return ("dir", dist_dir)
         return (None, None)
@@ -655,7 +709,7 @@ class InstaladorApp:
 
         tipo_fonte, caminho_fonte = self._localizar_fonte_instalacao()
         if not tipo_fonte:
-            self.mensagem_erro = "Pacote de arquivos não encontrado. Execute build_tudo.bat antes."
+            self.mensagem_erro = "Pacote de arquivos não encontrado. Execute tools/build_tudo.bat antes."
             self.estado = "ERRO"
             return False
 

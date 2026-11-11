@@ -24,10 +24,13 @@ except Exception:
     pass
 
 def obter_dir_base():
-    """Retorna o diretório base da aplicação (diretório do .exe se congelado, ou do script)."""
+    """Retorna o diretório base da aplicação (diretório do .exe se congelado, ou raiz do projeto)."""
     if getattr(sys, "frozen", False):
         return os.path.dirname(sys.executable)
-    return os.path.dirname(os.path.abspath(__file__))
+    dir_mod = os.path.dirname(os.path.abspath(__file__))
+    if os.path.basename(dir_mod).lower() == "src":
+        return os.path.dirname(dir_mod)
+    return dir_mod
 
 
 def resource_path(relative_path):
@@ -35,13 +38,16 @@ def resource_path(relative_path):
     bases = []
     if hasattr(sys, "_MEIPASS"):
         bases.append(sys._MEIPASS)
-    bases.append(obter_dir_base())
+    dir_base = obter_dir_base()
+    bases.append(dir_base)
+    bases.append(os.path.join(dir_base, "src"))
+    bases.append(os.path.join(dir_base, "docs"))
     bases.append(os.path.abspath("."))
     for base in bases:
         candidato = os.path.join(base, relative_path)
         if os.path.exists(candidato):
             return candidato
-    base_padrao = getattr(sys, "_MEIPASS", os.path.abspath("."))
+    base_padrao = getattr(sys, "_MEIPASS", dir_base)
     return os.path.join(base_padrao, relative_path)
 
 

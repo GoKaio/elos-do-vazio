@@ -37,6 +37,8 @@ jobs:
           HEADLESS: "1"
         run: |
           python -c "
+          import os, sys
+          sys.path.insert(0, os.path.abspath('src'))
           import pygame
           pygame.init()
           pygame.display.set_mode((960, 540))
