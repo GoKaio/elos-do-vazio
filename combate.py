@@ -29,6 +29,7 @@ import cenarios
 from cenarios import LARGURA_TELA, ALTURA_TELA, desenhar_fundo_combate
 from cenario_combate_25d import CameraCombate25D, CenarioCombate25D
 import dados_combatentes
+import inimigos
 import ui
 import ui_procedural
 import combate_ui
@@ -91,10 +92,20 @@ COR_TEXTO = (35, 25, 15)
 COR_TEXTO_CLARO = (235, 220, 185)
 COR_TEXTO_OURO = (240, 210, 120)
 
-GOLPES_SO_PULO = ("RASTEIRA", "ONDA_CHOQUE", "INVESTIDA", "TERREMOTO")
+GOLPES_SO_PULO = (
+    "RASTEIRA", "ONDA_CHOQUE", "INVESTIDA", "TERREMOTO",
+    "BOTE_FENDIDO", "CLAVA_SISMICA", "FURIA_ELOS_CORRENTES",
+)
 GOLPES_SO_PARRY = ("ESMAGAMENTO", "GOLPE_TITANICO", "QUEBRA_GUARDA", "RODOPIO")
-GOLPES_SO_DESVIO = ("VENENO", "RUGIDO", "GOLPE_ARCANO", "GARRAS")
+GOLPES_SO_DESVIO = (
+    "VENENO", "RUGIDO", "GOLPE_ARCANO", "GARRAS",
+    "LANCA_DO_VAZIO", "GUILHOTINA_TRIPLICE", "FURIA_ELOS_DETONACAO",
+)
 GOLPES_PADRAO = ("CORTE",)
+ATAQUES_QUE_QUEBRAM_PARRY = (
+    "BOTE_FENDIDO", "CLAVA_SISMICA", "LANCA_DO_VAZIO",
+    "GUILHOTINA_TRIPLICE", "FURIA_ELOS_CORRENTES", "FURIA_ELOS_DETONACAO",
+)
 
 POOL_GOLPES_COMUNS = ["CORTE", "ESMAGAMENTO", "RASTEIRA", "GARRAS", "VENENO"]
 POOL_GOLPES_MEDIOS = POOL_GOLPES_COMUNS + ["RODOPIO", "GOLPE_ARCANO", "QUEBRA_GUARDA"]
@@ -114,6 +125,12 @@ DESCRICAO_GOLPE = {
     "VENENO": "Névoa venenosa!",
     "GOLPE_ARCANO": "Energia arcana!",
     "RUGIDO": "Rugido sônico!",
+    "BOTE_FENDIDO": "Bote Fendido rasante!",
+    "CLAVA_SISMICA": "Clava Sísmica no solo!",
+    "LANCA_DO_VAZIO": "Lança do Vazio contínua!",
+    "GUILHOTINA_TRIPLICE": "Guilhotina Tríplice!",
+    "FURIA_ELOS_CORRENTES": "Correntes Rúnicas no piso!",
+    "FURIA_ELOS_DETONACAO": "Detonações do Santuário!",
 }
 
 DANO_GOLPE = {
@@ -130,6 +147,12 @@ DANO_GOLPE = {
     "GOLPE_TITANICO": int(CONFIG["inimigo_dano_esmagamento"] * 1.15),
     "QUEBRA_GUARDA": int(CONFIG["inimigo_dano_esmagamento"] * 1.0),
     "TERREMOTO": CONFIG.get("boss_dano_onda_choque", 30),
+    "BOTE_FENDIDO": int(CONFIG["inimigo_dano_corte"] * 1.15),
+    "CLAVA_SISMICA": int(CONFIG["inimigo_dano_esmagamento"] * 1.25),
+    "LANCA_DO_VAZIO": int(CONFIG["inimigo_dano_esmagamento"] * 1.15),
+    "GUILHOTINA_TRIPLICE": int(CONFIG["inimigo_dano_esmagamento"] * 1.20),
+    "FURIA_ELOS_CORRENTES": int(CONFIG["boss_dano_onda_choque"] * 1.15),
+    "FURIA_ELOS_DETONACAO": int(CONFIG["boss_dano_onda_choque"] * 1.30),
 }
 
 DEBUFFS_INFO = {
@@ -386,12 +409,29 @@ class CombateExpedition33:
             self.inimigo_hp = inimigo_ref.hp
             self.inimigo_max_hp = max(1, getattr(inimigo_ref, "max_hp", inimigo_ref.hp))
 
-        # Nas batalhas de chefe, o chefe SEMPRE ataca primeiro mesmo que o jogador tenha desferido golpe preventivo
-        if self.is_boss:
+        self._runas_sala7 = len(getattr(jogador_mapa, "runas_ativadas", set())) if (self.sala_atual == 6 and not getattr(self, "modo_boss_rush", False)) else 0
+        self._vantagem_puzzle_s7 = (self.sala_atual == 6 and self.is_boss and not getattr(self, "modo_boss_rush", False) and self._runas_sala7 >= 3)
+        self._chave_enfraqueceu_boss = bool(self.is_boss and getattr(inimigo_ref, "enfraquecido_por_chave", False))
+        self.escudo_santuario_turnos = 2 if (self.sala_atual == 6 and self.is_boss and not getattr(self, "modo_boss_rush", False) and self._runas_sala7 == 0) else 0
+
+        # Nas batalhas de chefe, o chefe ataca primeiro (a menos que o Puzzle da Sala 7 tenha quebrado o selo!)
+        if self._vantagem_puzzle_s7:
             audio.tocar_musica("boss_theme")
-            self.banner_msg = "O CHEFE ATACA PRIMEIRO! DEFENDA-SE!"
-            self.banner_cor = (255, 75, 75)
-            self.jogador_ap = CONFIG["jogador_ap_inicial"]
+            self.banner_msg = "ESCUDO ARCANO COLAPSADO PELO PUZZLE! (+2 AP & TURNO PREVENTIVO!)"
+            self.banner_cor = (85, 255, 195)
+            self.jogador_ap = min(self.max_ap, CONFIG["jogador_ap_inicial"] + 2)
+        elif self.is_boss:
+            audio.tocar_musica("boss_theme")
+            if self.escudo_santuario_turnos > 0:
+                self.banner_msg = "ESCUDO DO VAZIO INTACTO (-30% DANO)! SINTONIZE OS GLIFOS NA SALA!"
+                self.banner_cor = (195, 120, 255)
+            elif self._runas_sala7 > 0:
+                self.banner_msg = f"GLIFOS ({self._runas_sala7}/3): ESCUDO ENFRAQUECIDO (+{self._runas_sala7} AP)!"
+                self.banner_cor = (120, 240, 255)
+            else:
+                self.banner_msg = "O CHEFE ATACA PRIMEIRO! DEFENDA-SE!"
+                self.banner_cor = (255, 75, 75)
+            self.jogador_ap = min(self.max_ap, CONFIG["jogador_ap_inicial"] + self._runas_sala7)
         elif vantagem == "JOGADOR":
             audio.tocar_musica("battle_theme")
             self.banner_msg = "ATAQUE PREVENTIVO! (+2 AP & Turno Duplo)"
@@ -404,6 +444,9 @@ class CombateExpedition33:
             audio.tocar_musica("battle_theme")
             self.banner_msg = dados_combatentes.obter_titulo_arena(self.sala_atual, is_boss=self.is_boss).upper()
             self.banner_cor = (220, 225, 240)
+
+        if self._chave_enfraqueceu_boss:
+            self.jogador_ap = min(self.max_ap, self.jogador_ap + 1)
 
         # Menus principais do Turno do Jogador: "PRINCIPAL", "ATAQUES", "ITENS"
         self.menu_categoria = "PRINCIPAL"
@@ -431,6 +474,13 @@ class CombateExpedition33:
         for alvo in self.alvos_disponiveis:
             if not hasattr(alvo, "debuffs"):
                 alvo.debuffs = []
+        if self._runas_sala7 > 0:
+            if not any(d["tipo"] == "VULNERAVEL" for d in self.debuffs_inimigo):
+                self.debuffs_inimigo.append({"tipo": "VULNERAVEL", "nome": "Selo Quebrado", "turnos": 3 if self._runas_sala7 >= 3 else self._runas_sala7, "origem": "PUZZLE"})
+            if self._runas_sala7 >= 3 and not any(d["tipo"] == "FRAQUEZA" for d in self.debuffs_inimigo):
+                self.debuffs_inimigo.append({"tipo": "FRAQUEZA", "nome": "Colapso do Vazio", "turnos": 2, "origem": "PUZZLE"})
+        if self._chave_enfraqueceu_boss and not any(d["tipo"] == "FRAQUEZA" for d in self.debuffs_inimigo):
+            self.debuffs_inimigo.append({"tipo": "FRAQUEZA", "nome": "Selo da Chave", "turnos": 1, "origem": "CHAVE"})
 
         self.golpes_restantes_qte = 0
         self.qte_timer = 0.0
@@ -466,6 +516,13 @@ class CombateExpedition33:
         self.pulo_vy = 0.0
         self.pulando = False
         self.pulo_perfeito = False
+        self.pulo_duplo_disponivel = True
+        self.pogo_ativo = False
+        self.esquiva_frames_restantes = 0
+        self._accum_iframe_60 = 0.0
+        self.hitbox_jogador_reduzida = False
+        self.estado_golpe_inimigo = None
+        self.inimigo_em_recuperacao = False
 
         self.textos_flutuantes = []
         self.flash_cor = None
@@ -530,12 +587,12 @@ class CombateExpedition33:
         self.indice_proximo_inimigo_turno = 0
         inimigos_vivos = [pair for pair in self.combatentes_inimigos if getattr(pair[0], "vivo", True) and getattr(pair[0], "hp", 0) > 0]
 
-        if self.is_boss or vantagem == "INIMIGO":
+        if (self.is_boss and not getattr(self, "_vantagem_puzzle_s7", False)) or vantagem == "INIMIGO":
             if inimigos_vivos:
                 r0, c0 = inimigos_vivos[0]
                 self.timeline.append({"tipo": "INIMIGO", "ref": r0, "cb": c0, "nome": r0.nome})
                 self.indice_proximo_inimigo_turno = 1 % len(inimigos_vivos)
-        elif vantagem == "JOGADOR":
+        elif vantagem == "JOGADOR" or getattr(self, "_vantagem_puzzle_s7", False):
             self.timeline.append({"tipo": "JOGADOR", "ref": self.jogador_mapa, "cb": self.combatente_jogador, "nome": "Viajante"})
             self.timeline.append({"tipo": "JOGADOR", "ref": self.jogador_mapa, "cb": self.combatente_jogador, "nome": "Viajante"})
         else:
@@ -911,6 +968,9 @@ class CombateExpedition33:
         if any(d["tipo"] == "FRAQUEZA" for d in self.debuffs_jogador):
             dano = int(dano * 0.70)
             mensagens_mod.append(("FRAQUEZA -30%!", (175, 140, 255)))
+        if getattr(self, "escudo_santuario_turnos", 0) > 0 and self.is_boss:
+            dano = int(dano * 0.70)
+            mensagens_mod.append(("ESCUDO DO VAZIO -30%!", (185, 115, 255)))
 
         debuff_tipo = acao.get("debuff")
         is_aoe = acao.get("aoe", False)
@@ -1029,6 +1089,8 @@ class CombateExpedition33:
 
     def iniciar_combo_inimigo(self):
         self.estado = "TURNO_INIMIGO"
+        if getattr(self, "escudo_santuario_turnos", 0) > 0:
+            self.escudo_santuario_turnos = max(0, self.escudo_santuario_turnos - 1)
         atual = self.timeline[0]
         ref_at = atual["ref"]
         cb_at = atual["cb"]
@@ -1049,25 +1111,40 @@ class CombateExpedition33:
         # O combatente ativo avança para a frente do herói em perspectiva 3D
         cb_at.pos_alvo = [-170.0, 140.0, -20.0]
 
-        # Determina o golpe específico deste combatente de acordo com seu arquétipo
-        pool_usar = []
-        if getattr(cb_at, "move_pool", None):
-            for m in cb_at.move_pool:
-                pool_usar.append(m.get("id", "").upper())
-        if not pool_usar:
-            if self.atacante_atual_is_boss:
-                pool_usar = list(POOL_GOLPES_BOSS)
-            elif getattr(ref_at, "num_combos", 2) >= 3:
-                pool_usar = list(POOL_GOLPES_MEDIOS)
-            else:
-                pool_usar = list(POOL_GOLPES_COMUNS)
+        # Determina o golpe exclusivo deste inimigo conforme sua classe nas 7 salas
+        sprite_ref = getattr(ref_at, "sprite_nome", None) or (getattr(cb_at, "sprite_nome", None) if cb_at else None)
+        ataque_exclusivo = inimigos.inferir_id_ataque_exclusivo(
+            getattr(ref_at, "nome", ""),
+            sprite=sprite_ref,
+            is_boss=self.atacante_atual_is_boss,
+        )
 
-        golpe = random.choice(pool_usar)
-        total_golpes = 2 if (self.atacante_atual_is_boss or golpe == "COMBO_DUPLO") else 1
-        self.combo_inimigo = [golpe]
-        if total_golpes == 2 and len(pool_usar) > 1:
-            g2 = random.choice(pool_usar)
-            self.combo_inimigo.append(g2)
+        if ataque_exclusivo == "FURIA_ELOS_RUNICOS":
+            # Chefe da Sala 7: Correntes no chão (Salto) seguidas de Detonações (Rolamento)
+            self.combo_inimigo = ["FURIA_ELOS_CORRENTES", "FURIA_ELOS_DETONACAO"]
+        else:
+            pool_usar = []
+            if getattr(cb_at, "move_pool", None):
+                for m in cb_at.move_pool:
+                    pool_usar.append(m.get("id", "").upper())
+            if not pool_usar:
+                if self.atacante_atual_is_boss:
+                    pool_usar = list(POOL_GOLPES_BOSS)
+                elif getattr(ref_at, "num_combos", 2) >= 3:
+                    pool_usar = list(POOL_GOLPES_MEDIOS)
+                else:
+                    pool_usar = list(POOL_GOLPES_COMUNS)
+
+            # Prioriza o ataque exclusivo da classe (65% ou sempre no 1º golpe do turno)
+            if self.turnos_inimigo_decorridos == 0 or random.random() < 0.70:
+                golpe = ataque_exclusivo
+            else:
+                golpe = random.choice(pool_usar)
+            total_golpes = 2 if (self.atacante_atual_is_boss or golpe == "COMBO_DUPLO") else 1
+            self.combo_inimigo = [golpe]
+            if total_golpes == 2:
+                g2 = random.choice(pool_usar) if pool_usar else ataque_exclusivo
+                self.combo_inimigo.append(g2)
 
         self.combo_atacantes = [{
             "ref": ref_at,
@@ -1201,6 +1278,13 @@ class CombateExpedition33:
         self.golpe_anim_iniciado = False
         self.reacao_executada_neste_golpe = False
         self.pulo_perfeito = False
+        self.pogo_ativo = False
+        self.pulo_duplo_disponivel = True
+        self.esquiva_frames_restantes = 0
+        self._accum_iframe_60 = 0.0
+        self.hitbox_jogador_reduzida = False
+        self.estado_golpe_inimigo = inimigos.ESTADO_PREPARANDO
+        self.inimigo_em_recuperacao = False
 
         if hasattr(self, "combo_atacantes") and self.combo_atacantes and self.golpe_inimigo_atual < len(self.combo_atacantes):
             dados_golpe = self.combo_atacantes[self.golpe_inimigo_atual]
@@ -1223,10 +1307,14 @@ class CombateExpedition33:
         self.atacante_atual_cb.pos_alvo = [-170.0, 140.0, -20.0]
 
         self.cam.definir_pose(x=-25, y=10, zoom=1.12, tilt=2.5 if num % 2 == 1 else -2.5)
-        # Golpes especiais têm telegrafias mais longas
+        # Golpes exclusivos e especiais têm janelas de antecipação (wind-up) dedicadas
         tempo_extra = 0.0
-        if tipo in ("ONDA_CHOQUE", "INVESTIDA"):
-            tempo_extra = 0.30
+        if tipo in ("ONDA_CHOQUE", "INVESTIDA", "BOTE_FENDIDO", "GUILHOTINA_TRIPLICE"):
+            tempo_extra = 0.28
+        elif tipo in ("CLAVA_SISMICA", "FURIA_ELOS_CORRENTES"):
+            tempo_extra = 0.34
+        elif tipo in ("LANCA_DO_VAZIO", "FURIA_ELOS_DETONACAO"):
+            tempo_extra = 0.26
         elif tipo in ("RUGIDO", "RODOPIO"):
             tempo_extra = 0.15
         mult_lentidao = 1.35 if any(d["tipo"] == "LENTIDAO" for d in self.debuffs_inimigo) else 1.0
@@ -1239,7 +1327,25 @@ class CombateExpedition33:
         tag_c = ui_medieval.tag_comando("desvio")
 
         prefixo_at = f"[!] {num}/{total} • {nome_at.upper()}"
-        if tipo in GOLPES_SO_PULO:
+        if tipo == "BOTE_FENDIDO":
+            self.banner_msg = f"{prefixo_at}: BOTE FENDIDO RASANTE! → {tag_p} SALTE (POGO)!"
+            self.banner_cor = (255, 110, 50)
+        elif tipo == "CLAVA_SISMICA":
+            self.banner_msg = f"{prefixo_at}: CLAVA SÍSMICA NO SOLO! → {tag_p} SALTO DE REAÇÃO!"
+            self.banner_cor = (255, 70, 80)
+        elif tipo == "LANCA_DO_VAZIO":
+            self.banner_msg = f"{prefixo_at}: LANÇA DO VAZIO! → {tag_c} ESQUIVA RASTEIRA (14 I-FRAMES)!"
+            self.banner_cor = (155, 95, 255)
+        elif tipo == "GUILHOTINA_TRIPLICE":
+            self.banner_msg = f"{prefixo_at}: GUILHOTINA TRÍPLICE (2º QUEBRA PARRY)! → {tag_c} ROLE!"
+            self.banner_cor = (235, 85, 120)
+        elif tipo == "FURIA_ELOS_CORRENTES":
+            self.banner_msg = f"{prefixo_at}: CORRENTES NO PISO! → {tag_p} SALTE E PREPARE O POGO!"
+            self.banner_cor = (255, 195, 65)
+        elif tipo == "FURIA_ELOS_DETONACAO":
+            self.banner_msg = f"{prefixo_at}: DETONAÇÕES AÉREAS! → {tag_c} ROLE AO ATERRISSAR!"
+            self.banner_cor = (125, 235, 255)
+        elif tipo in GOLPES_SO_PULO:
             if tipo == "ONDA_CHOQUE":
                 self.banner_msg = f"{prefixo_at}: ONDA DE CHOQUE! → {tag_p} PULE!"
                 self.banner_cor = (255, 150, 40)
@@ -1289,15 +1395,34 @@ class CombateExpedition33:
         tipo = self.combo_inimigo[self.golpe_inimigo_atual]
         mult_boss = 1.25 if self.is_boss else 1.0
         contra_por_pulo = False
+        contra_por_desvio = False
+        self.estado_golpe_inimigo = inimigos.ESTADO_RECUPERACAO
 
         if tipo in GOLPES_SO_PULO:
-            # Golpes que nao podem ser aparados nem desviados no chao: so pulando no timing exato.
-            pulou = self.pulando and (self.pulo_offset_y < -25 or getattr(self, "pulo_perfeito", False))
+            # Ataques rasantes / ondas sísmicas ignoram rolamento no chão: exigem Salto de Reação ou Pogo.
+            pulou = self.pulando and (
+                self.pulo_offset_y < -25
+                or getattr(self, "pulo_perfeito", False)
+                or self.pogo_ativo
+            )
             if pulou:
                 pulo_perfeito = getattr(self, "pulo_perfeito", False)
-                if pulo_perfeito or tipo in ("ONDA_CHOQUE", "INVESTIDA"):
+                if self.pogo_ativo:
+                    self.pulo_vy = -590.0
+                    self.pogo_ativo = False
                     contra_por_pulo = True
-                    self.adicionar_texto_flutuante("SALTO PERFEITO! CONTRA-ATAQUE!", 180, 190, (255, 235, 110))
+                    self.inimigo_em_recuperacao = True
+                    self.jogador_ap = min(self.max_ap, self.jogador_ap + 2)
+                    audio.tocar_sfx("parry", 0.85)
+                    self.adicionar_texto_flutuante("POGO BOUNCE! REBOTE (+2 AP)!", 175, 185, (110, 255, 220))
+                    self.disparar_flash((110, 255, 220), 120)
+                    self.cam.tremer(0.22, 12)
+                elif pulo_perfeito or tipo in (
+                    "ONDA_CHOQUE", "INVESTIDA", "BOTE_FENDIDO", "CLAVA_SISMICA", "FURIA_ELOS_CORRENTES"
+                ):
+                    contra_por_pulo = True
+                    self.inimigo_em_recuperacao = True
+                    self.adicionar_texto_flutuante("SALTO DE REAÇÃO! CONTRA-ATAQUE!", 170, 190, (255, 235, 110))
                     self.disparar_flash((255, 220, 90), 120)
                     self.cam.tremer(0.20, 10)
                     self.jogador_ap = min(self.max_ap, self.jogador_ap + (2 if pulo_perfeito else 1))
@@ -1307,9 +1432,17 @@ class CombateExpedition33:
             else:
                 self.todos_aparados_com_parry = False
                 dano_base = DANO_GOLPE.get(tipo, CONFIG["inimigo_dano_rastria"])
-                self.aplicar_dano_no_jogador(int(dano_base * mult_boss))
+                if tipo == "BOTE_FENDIDO" and self.janela_parry_ativa > 0:
+                    self.adicionar_texto_flutuante("BLOQUEIO QUEBRADO + ATORDOAMENTO!", 160, 215, (255, 95, 70))
+                    self.aplicar_dano_no_jogador(int(dano_base * mult_boss))
+                    self.aplicar_debuff("JOGADOR", "VULNERAVEL", turnos=1)
+                elif self.esquiva_frames_restantes > 0 or self.janela_desvio_ativa > 0:
+                    self.adicionar_texto_flutuante("ROLAMENTO NO CHÃO IGNORADO! SÓ SALTO!", 150, 215, (255, 140, 75))
+                    self.aplicar_dano_no_jogador(int(dano_base * mult_boss))
+                else:
+                    self.adicionar_texto_flutuante("NÃO SALTOU A TEMPO!", 220, 220, (255, 90, 80))
+                    self.aplicar_dano_no_jogador(int(dano_base * mult_boss))
                 self.aplicar_debuff("JOGADOR", "LENTIDAO", turnos=1, valor=1)
-                self.adicionar_texto_flutuante("NÃO SALTOU A TEMPO!", 220, 220, (255, 90, 80))
 
         elif tipo in GOLPES_SO_PARRY:
             # Golpes esmagadores que SÓ podem ser defendidos com PARRY [X]
@@ -1322,8 +1455,7 @@ class CombateExpedition33:
                 self.jogador_ap = min(self.max_ap, self.jogador_ap + 2)
                 self.adicionar_texto_flutuante("PARRY TITÂNICO! +2 AP", 250, 210, (80, 240, 255))
                 self.cam.definir_pose(x=-65, y=20, zoom=1.30, tilt=-5.0)
-            elif self.janela_desvio_ativa > 0:
-                # Esquiva falha contra o impacto massivo no chão
+            elif self.janela_desvio_ativa > 0 or self.esquiva_frames_restantes > 0:
                 self.todos_aparados_com_parry = False
                 dano_base = DANO_GOLPE.get(tipo, 18)
                 tag_x = ui_medieval.tag_comando("parry")
@@ -1337,20 +1469,46 @@ class CombateExpedition33:
                 self.aplicar_debuff("JOGADOR", "FRAQUEZA", turnos=2)
 
         elif tipo in GOLPES_SO_DESVIO:
-            # Golpes que SÓ podem ser desviados (C), não aparados (X)
-            if self.janela_desvio_ativa > 0:
+            # Feixes, guilhotinas altas e detonações exigem Esquiva Rasteira / 14 I-Frames (C / Shift)
+            no_chao_ou_rolando = (
+                self.esquiva_frames_restantes > 0
+                or self.janela_desvio_ativa > 0
+                or self.hitbox_jogador_reduzida
+            )
+            if no_chao_ou_rolando and not (self.pulando and self.pulo_offset_y < -25):
                 self.desvios_perfeitos += 1
-                self.adicionar_texto_flutuante("DESVIO PERFEITO!", 190, 210, (130, 255, 180))
-                self.jogador_ap = min(self.max_ap, self.jogador_ap + 1)
-                self.cam.tremer(0.15, 8)
-                self.disparar_flash((130, 255, 180), 90)
+                self.inimigo_em_recuperacao = True
+                audio.tocar_sfx("teleport", 0.85)
+                if tipo == "GUILHOTINA_TRIPLICE":
+                    contra_por_desvio = True
+                    self.jogador_ap = min(self.max_ap, self.jogador_ap + 2)
+                    self.adicionar_texto_flutuante("ROLOU POR BAIXO! PUNIÇÃO +2 AP!", 160, 200, (125, 245, 255))
+                elif tipo in ("LANCA_DO_VAZIO", "FURIA_ELOS_DETONACAO"):
+                    self.jogador_ap = min(self.max_ap, self.jogador_ap + (2 if tipo == "FURIA_ELOS_DETONACAO" else 1))
+                    self.adicionar_texto_flutuante("ESQUIVA RASTEIRA (14 I-FRAMES)!", 165, 205, (125, 245, 255))
+                else:
+                    self.jogador_ap = min(self.max_ap, self.jogador_ap + 1)
+                    self.adicionar_texto_flutuante("DESVIO PERFEITO!", 190, 210, (130, 255, 180))
+                self.cam.tremer(0.16, 9)
+                self.disparar_flash((125, 240, 255), 95)
+            elif self.pulando and self.pulo_offset_y < -25 and tipo in ATAQUES_QUE_QUEBRAM_PARRY:
+                # Pulou no raio contínuo ou nas detonações aéreas — pego no ar!
+                self.todos_aparados_com_parry = False
+                dano_base = DANO_GOLPE.get(tipo, 18)
+                tag_c = ui_medieval.tag_comando("desvio")
+                self.adicionar_texto_flutuante(f"ATINGIDO NO AR! USE ESQUIVA {tag_c}!", 165, 215, (255, 115, 90))
+                self.aplicar_dano_no_jogador(int(dano_base * mult_boss))
             elif self.janela_parry_ativa > 0:
-                # Tentou parry num golpe que só aceita desvio — dano reduzido
                 self.todos_aparados_com_parry = False
                 dano_base = DANO_GOLPE.get(tipo, 15)
                 tag_c = ui_medieval.tag_comando("desvio")
-                self.adicionar_texto_flutuante(f"PARRY FALHOU! SÓ DESVIO {tag_c}!", 180, 220, (255, 180, 80))
-                self.aplicar_dano_no_jogador(int(dano_base * mult_boss * 0.5))
+                if tipo in ATAQUES_QUE_QUEBRAM_PARRY:
+                    self.adicionar_texto_flutuante(f"PARRY QUEBRADO! SÓ ROLAMENTO {tag_c}!", 150, 220, (255, 95, 95))
+                    self.aplicar_dano_no_jogador(int(dano_base * mult_boss))
+                    self.aplicar_debuff("JOGADOR", "VULNERAVEL", turnos=1)
+                else:
+                    self.adicionar_texto_flutuante(f"PARRY FALHOU! SÓ DESVIO {tag_c}!", 180, 220, (255, 180, 80))
+                    self.aplicar_dano_no_jogador(int(dano_base * mult_boss * 0.5))
                 if tipo == "VENENO":
                     self.aplicar_debuff("JOGADOR", "VENENO", turnos=2, valor=10)
                 elif tipo == "RUGIDO":
@@ -1363,6 +1521,12 @@ class CombateExpedition33:
                     self.aplicar_debuff("JOGADOR", "VENENO", turnos=2, valor=10)
                 elif tipo == "RUGIDO":
                     self.aplicar_debuff("JOGADOR", "LENTIDAO", turnos=1, valor=1)
+                elif tipo == "GUILHOTINA_TRIPLICE":
+                    self.aplicar_debuff("JOGADOR", "SANGRANDO", turnos=2)
+                elif tipo == "LANCA_DO_VAZIO":
+                    self.aplicar_debuff("JOGADOR", "VULNERAVEL", turnos=1)
+                elif tipo == "FURIA_ELOS_DETONACAO":
+                    self.aplicar_debuff("JOGADOR", "FRAQUEZA", turnos=1)
 
         else:
             # Golpes padrão: podem ser aparados (X) ou desviados (C)
@@ -1372,12 +1536,12 @@ class CombateExpedition33:
                 self.hitstop_timer = 0.12
                 self.cam.tremer(0.22, 14)
                 self.disparar_flash((80, 255, 230), 130)
-                ganho_ap = 2 if tipo == "RODOPIO" else 1  # Rodopio dá AP extra no parry
+                ganho_ap = 2 if tipo == "RODOPIO" else 1
                 self.jogador_ap = min(self.max_ap, self.jogador_ap + ganho_ap)
                 self.adicionar_texto_flutuante(f"PARRY! +{ganho_ap} AP", 250, 210, (60, 255, 220))
                 self.cam.definir_pose(x=-65, y=20, zoom=1.28, tilt=-5.0)
 
-            elif self.janela_desvio_ativa > 0:
+            elif self.janela_desvio_ativa > 0 or self.esquiva_frames_restantes > 0:
                 audio.tocar_sfx("teleport", 0.75)
                 self.todos_aparados_com_parry = False
                 self.adicionar_texto_flutuante("DESVIO!", 190, 230, (130, 210, 255))
@@ -1405,8 +1569,7 @@ class CombateExpedition33:
             if self.sala_idx >= 3 and self.turnos_inimigo_decorridos >= 2 and not self.esqueleto_invocado and self.jogador_hp > 0:
                 self.invocar_esqueleto()
 
-        if contra_por_pulo and self.jogador_hp > 0:
-            # Pulou a Onda de Choque/Investida: contra-ataque imediato; depois o combo do boss continua
+        if (contra_por_pulo or contra_por_desvio) and self.jogador_hp > 0:
             self.iniciar_contra_ataque_cinematico(retomar_combo=restam_golpes, por_pulo=True)
         elif restam_golpes:
             self.preparar_golpe_inimigo()
@@ -1754,7 +1917,9 @@ class CombateExpedition33:
         elif self.estado == "TURNO_INIMIGO":
             tipo = self.tipo_golpe_atual()
             if key == pygame.K_SPACE:
-                # Click Time Event de Salto no Combate
+                # Salto de Reação + Impulso Aéreo (Vault Leap) no Combate Solo
+                self.hitbox_jogador_reduzida = False
+                self.esquiva_frames_restantes = 0
                 if not self.pulando:
                     self.pulando = True
                     tempo_restante = self.tempo_impacto - self.inimigo_timer
@@ -1767,7 +1932,7 @@ class CombateExpedition33:
                             self.pulo_vy = -620.0  # Salto alto e acrobático de contra-ataque
                             audio.tocar_sfx("jump", 0.95)
                             self.anim_jog.tocar("jump", loop=False, duracao=0.55, forcar=True)
-                            self.adicionar_texto_flutuante("★ SALTO PERFEITO! ★", 240, 200, (80, 255, 180))
+                            self.adicionar_texto_flutuante("★ SALTO DE REAÇÃO PERFEITO! ★", 215, 200, (80, 255, 180))
                             self.disparar_flash((90, 255, 190), 110)
                             self.cam.definir_pose(x=-50, y=-25, zoom=1.35, tilt=4.5)
                         elif pulo_muito_cedo:
@@ -1786,37 +1951,68 @@ class CombateExpedition33:
                         self.pulo_vy = -540.0
                         audio.tocar_sfx("jump", 0.80)
                         self.anim_jog.tocar("jump", loop=False, duracao=0.45, forcar=True)
+                elif self.pulo_duplo_disponivel:
+                    self.pulo_duplo_disponivel = False
+                    self.pulo_vy = -610.0
+                    tempo_restante = self.tempo_impacto - self.inimigo_timer
+                    if tipo in GOLPES_SO_PULO and abs(tempo_restante) <= 0.30:
+                        self.pulo_perfeito = True
+                    audio.tocar_sfx("jump", 0.95)
+                    self.anim_jog.tocar("jump", loop=False, duracao=0.50, forcar=True)
+                    self.adicionar_texto_flutuante("IMPULSO AÉREO! (VAULT LEAP)", 200, 195, (120, 245, 255))
+            elif self.pulando and key in (pygame.K_z, pygame.K_DOWN, pygame.K_s) and not self.pogo_ativo:
+                self.pogo_ativo = True
+                audio.tocar_sfx("hit_enemy", 0.65)
+                self.anim_jog.tocar("attack", loop=False, duracao=0.30, forcar=True)
+                self.adicionar_texto_flutuante("GOLPE POGO ↓", 225, 215, (110, 255, 220))
+            elif key in (pygame.K_c, pygame.K_LSHIFT, pygame.K_RSHIFT) and self.cooldown_reacao <= 0 and not self.reacao_executada_neste_golpe:
+                # Esquiva Rasteira / Rolamento com 14 I-Frames + hitbox reduzida pela metade
+                if self.pulo_offset_y > -20:
+                    self.pulando = False
+                    self.pulo_offset_y = 0.0
+                    self.pulo_vy = 0.0
+                self.esquiva_frames_restantes = 14
+                self._accum_iframe_60 = 0.0
+                self.hitbox_jogador_reduzida = True
+                self.janela_desvio_ativa = max(0.36, 14.0 / 60.0)
+                self.desvio_offset_x = 55.0 if tipo == "GUILHOTINA_TRIPLICE" else -85.0
+                self.anim_jog.tocar("dodge", loop=False, duracao=0.36, forcar=True)
+                self.cooldown_reacao = 0.32
+                self.reacao_executada_neste_golpe = True
+                self.cam.definir_pose(x=-70, y=10, zoom=1.15, tilt=4.0)
+                if tipo in GOLPES_SO_PULO:
+                    tag_p = ui_medieval.tag_comando("pulo")
+                    self.adicionar_texto_flutuante(f"IGNORADO NO CHÃO! USE {tag_p}!", 175, 248, (255, 165, 80))
+                elif tipo in GOLPES_SO_PARRY:
+                    tag_x = ui_medieval.tag_comando("parry")
+                    self.adicionar_texto_flutuante(f"SÓ PARRY {tag_x}!", 190, 250, (255, 120, 80))
+                else:
+                    self.adicionar_texto_flutuante("ROLAMENTO (14 I-FRAMES)!", 185, 235, (125, 245, 255))
             elif tipo in GOLPES_SO_PULO:
-                if key in (pygame.K_x, pygame.K_c):
-                    if self.cooldown_reacao <= 0:
-                        self.cooldown_reacao = 0.30
-                        tag_p = ui_medieval.tag_comando("pulo")
-                        self.adicionar_texto_flutuante(f"SÓ PULANDO {tag_p}!", 190, 250, (255, 190, 80))
+                if key == pygame.K_x and self.cooldown_reacao <= 0:
+                    self.cooldown_reacao = 0.30
+                    if tipo == "BOTE_FENDIDO":
+                        self.janela_parry_ativa = 0.22
+                        self.reacao_executada_neste_golpe = True
+                        self.anim_jog.tocar("block", loop=False, duracao=0.28, forcar=True)
+                    tag_p = ui_medieval.tag_comando("pulo")
+                    self.adicionar_texto_flutuante(f"SÓ PULANDO {tag_p}!", 190, 250, (255, 190, 80))
             elif tipo in GOLPES_SO_PARRY:
-                if key == pygame.K_c:
-                    if self.cooldown_reacao <= 0:
-                        self.cooldown_reacao = 0.30
-                        tag_x = ui_medieval.tag_comando("parry")
-                        self.adicionar_texto_flutuante(f"SÓ PARRY {tag_x}!", 190, 250, (255, 120, 80))
-                elif key == pygame.K_x and self.cooldown_reacao <= 0 and not self.reacao_executada_neste_golpe:
+                if key == pygame.K_x and self.cooldown_reacao <= 0 and not self.reacao_executada_neste_golpe:
                     self.janela_parry_ativa = 0.26
                     self.anim_jog.tocar("block", loop=False, duracao=0.32, forcar=True)
                     self.cooldown_reacao = 0.32
                     self.reacao_executada_neste_golpe = True
                     self.cam.definir_pose(x=-45, y=15, zoom=1.22, tilt=-4.0)
             elif tipo in GOLPES_SO_DESVIO:
-                if key == pygame.K_x:
-                    if self.cooldown_reacao <= 0:
-                        self.cooldown_reacao = 0.30
-                        tag_c = ui_medieval.tag_comando("desvio")
-                        self.adicionar_texto_flutuante(f"SÓ DESVIO {tag_c}!", 190, 250, (255, 190, 80))
-                elif key == pygame.K_c and self.cooldown_reacao <= 0 and not self.reacao_executada_neste_golpe:
-                    self.janela_desvio_ativa = 0.36
-                    self.desvio_offset_x = -85.0
-                    self.anim_jog.tocar("dodge", loop=False, duracao=0.36, forcar=True)
-                    self.cooldown_reacao = 0.32
-                    self.reacao_executada_neste_golpe = True
-                    self.cam.definir_pose(x=-70, y=10, zoom=1.15, tilt=4.0)
+                if key == pygame.K_x and self.cooldown_reacao <= 0:
+                    self.cooldown_reacao = 0.30
+                    if tipo in ATAQUES_QUE_QUEBRAM_PARRY:
+                        self.janela_parry_ativa = 0.22
+                        self.reacao_executada_neste_golpe = True
+                        self.anim_jog.tocar("block", loop=False, duracao=0.28, forcar=True)
+                    tag_c = ui_medieval.tag_comando("desvio")
+                    self.adicionar_texto_flutuante(f"QUEBRA PARRY! USE {tag_c}!", 180, 250, (255, 130, 80))
             elif self.cooldown_reacao <= 0 and not self.reacao_executada_neste_golpe:
                 if key == pygame.K_x:
                     self.janela_parry_ativa = 0.23
@@ -1824,14 +2020,6 @@ class CombateExpedition33:
                     self.cooldown_reacao = 0.32
                     self.reacao_executada_neste_golpe = True
                     self.cam.definir_pose(x=-45, y=15, zoom=1.20, tilt=-4.0)
-
-                elif key == pygame.K_c:
-                    self.janela_desvio_ativa = 0.36
-                    self.desvio_offset_x = -85.0
-                    self.anim_jog.tocar("dodge", loop=False, duracao=0.36, forcar=True)
-                    self.cooldown_reacao = 0.32
-                    self.reacao_executada_neste_golpe = True
-                    self.cam.definir_pose(x=-70, y=10, zoom=1.15, tilt=4.0)
 
     def update(self, dt):
         self.tempo_combate += dt
@@ -1929,7 +2117,14 @@ class CombateExpedition33:
         self.janela_desvio_ativa = max(0.0, self.janela_desvio_ativa - dt)
         self.cooldown_reacao = max(0.0, self.cooldown_reacao - dt)
 
-        if self.janela_desvio_ativa <= 0:
+        if self.esquiva_frames_restantes > 0:
+            self._accum_iframe_60 += dt
+            while self._accum_iframe_60 >= (1.0 / 60.0) and self.esquiva_frames_restantes > 0:
+                self._accum_iframe_60 -= (1.0 / 60.0)
+                self.esquiva_frames_restantes -= 1
+
+        if self.esquiva_frames_restantes <= 0 and self.janela_desvio_ativa <= 0:
+            self.hitbox_jogador_reduzida = False
             self.desvio_offset_x += (0.0 - self.desvio_offset_x) * 10.0 * dt
 
         if self.pulando:
@@ -1939,6 +2134,8 @@ class CombateExpedition33:
                 self.pulo_offset_y = 0.0
                 self.pulo_vy = 0.0
                 self.pulando = False
+                self.pulo_duplo_disponivel = True
+                self.pogo_ativo = False
 
         if self.estado == "QTE_JOGADOR":
             self.qte_timer += dt
@@ -1948,18 +2145,23 @@ class CombateExpedition33:
         elif self.estado == "TURNO_INIMIGO":
             self.inimigo_timer += dt
             prog_golpe = min(1.0, self.inimigo_timer / self.tempo_impacto)
+            self.estado_golpe_inimigo = (
+                inimigos.ESTADO_EXECUTANDO if prog_golpe >= 0.65 else inimigos.ESTADO_PREPARANDO
+            )
             cb_at = getattr(self, "atacante_atual_cb", self.combatente_inimigo)
+            tipo_golpe = self.tipo_golpe_atual()
+            golpe_a_distancia = tipo_golpe in ("ONDA_CHOQUE", "CLAVA_SISMICA", "LANCA_DO_VAZIO", "FURIA_ELOS_CORRENTES", "FURIA_ELOS_DETONACAO")
             if cb_at:
                 if not hasattr(cb_at, "pos_base"):
                     cb_at.pos_base = list(cb_at.pos_mundo)
-                # O atacante se aproxima em perspectiva 3D
+                # Golpes à distância permanecem mais recuados enquanto canalizam runas/feixe
+                fator_av = 0.28 if golpe_a_distancia else 0.75
                 t_cub = prog_golpe ** 2
-                cb_at.pos_mundo[0] = cb_at.pos_base[0] + (-170.0 - cb_at.pos_base[0]) * (t_cub * 0.75)
-                cb_at.pos_mundo[2] = cb_at.pos_base[2] + (-20.0 - cb_at.pos_base[2]) * (t_cub * 0.75)
+                cb_at.pos_mundo[0] = cb_at.pos_base[0] + (-170.0 - cb_at.pos_base[0]) * (t_cub * fator_av)
+                cb_at.pos_mundo[2] = cb_at.pos_base[2] + (-20.0 - cb_at.pos_base[2]) * (t_cub * fator_av)
 
             if not self.golpe_anim_iniciado and self.inimigo_timer >= self.tempo_impacto - 0.45:
                 self.golpe_anim_iniciado = True
-                tipo_golpe = self.tipo_golpe_atual()
                 anim_target = cb_at.animador if (cb_at and cb_at.animador) else self.anim_inim
                 if tipo_golpe in GOLPES_SO_PULO:
                     anim_target.tocar("attack_pulo", loop=False, duracao=0.60, forcar=True)
@@ -1970,8 +2172,8 @@ class CombateExpedition33:
                 else:
                     anim_target.tocar("attack_combo" if "attack_combo" in getattr(anim_target, "personagem", SimpleNamespace(anims={})).anims else "attack", loop=False, duracao=0.60, forcar=True)
 
-            if self.tipo_golpe_atual() == "ONDA_CHOQUE":
-                self.inim_avanco = 0.2 * prog_golpe
+            if golpe_a_distancia:
+                self.inim_avanco = 0.22 * prog_golpe
             else:
                 self.inim_avanco = prog_golpe ** 2
 
@@ -2048,9 +2250,15 @@ class CombateExpedition33:
         # Determinar cor e texto baseado no tipo de golpe
         if tipo in GOLPES_SO_PULO:
             if no_ar:
-                cor, texto = (110, 255, 150), "NO AR!"
+                cor, texto = (110, 255, 150), "NO AR! PREPARE POGO ↓"
             elif 0.10 <= restante <= 0.62 and not self.pulando:
-                cor, texto = (255, 255, 120), f"PULE {tag_p} AGORA!"
+                cor, texto = (255, 255, 120), f"SALTE {tag_p} AGORA!"
+            elif tipo == "BOTE_FENDIDO":
+                cor, texto = (255, 110, 50), f"BOTE RASANTE! {tag_p}"
+            elif tipo == "CLAVA_SISMICA":
+                cor, texto = (255, 70, 80), f"ONDA SÍSMICA! {tag_p}"
+            elif tipo == "FURIA_ELOS_CORRENTES":
+                cor, texto = (255, 195, 65), f"CORRENTES NO PISO! {tag_p}"
             else:
                 cor, texto = (255, int(90 + 90 * pulso), 50), f"PULE {tag_p}!"
         elif tipo in GOLPES_SO_PARRY:
@@ -2061,30 +2269,38 @@ class CombateExpedition33:
             else:
                 cor, texto = (90, 210, 255), f"SÓ PARRY {tag_x}!"
         elif tipo in GOLPES_SO_DESVIO:
-            if self.janela_desvio_ativa > 0:
-                cor, texto = (130, 255, 180), "DESVIANDO!"
+            if self.esquiva_frames_restantes > 0 or self.janela_desvio_ativa > 0:
+                cor, texto = (125, 245, 255), f"ROLANDO ({self.esquiva_frames_restantes}f I-FRAMES)!"
             elif 0.10 <= restante <= 0.62:
-                cor, texto = (255, 255, 120), f"DESVIE {tag_c}!"
+                cor, texto = (255, 255, 120), f"ROLE POR BAIXO {tag_c}!"
+            elif tipo == "LANCA_DO_VAZIO":
+                cor, texto = (165, 105, 255), f"RAIO CONTÍNUO! {tag_c}"
+            elif tipo == "GUILHOTINA_TRIPLICE":
+                cor, texto = (235, 85, 120), f"GUILHOTINA! {tag_c}"
+            elif tipo == "FURIA_ELOS_DETONACAO":
+                cor, texto = (125, 235, 255), f"DETONAÇÕES! {tag_c}"
             else:
                 cor, texto = (120, 255, 80) if tipo == "VENENO" else (200, 180, 255), f"DESVIE {tag_c}!"
         else:
             return  # Golpes normais não precisam de sinal especial
 
-        # 1) Borda da tela pulsando
+        # 1) Borda da tela pulsando conforme a família de perigo
         borda = pygame.Surface((LARGURA_TELA, ALTURA_TELA), pygame.SRCALPHA)
         if tipo in GOLPES_SO_PULO:
-            cor_borda = (255, 60, 40, int(50 + 110 * pulso))
+            cor_borda = (255, 65, 45, int(55 + 115 * pulso))
         elif tipo in GOLPES_SO_PARRY:
             cor_borda = (80, 210, 255, int(45 + 105 * pulso))
         elif tipo == "VENENO":
             cor_borda = (60, 200, 40, int(40 + 100 * pulso))
+        elif tipo == "GUILHOTINA_TRIPLICE":
+            cor_borda = (230, 60, 105, int(55 + 115 * pulso))
         else:
-            cor_borda = (160, 100, 255, int(40 + 100 * pulso))
+            cor_borda = (155, 95, 255, int(50 + 110 * pulso))
         pygame.draw.rect(borda, cor_borda, borda.get_rect(), 10)
         surface.blit(borda, (0, 0))
 
-        # 2) Zona de perigo
-        larg_zona = int(150 * self.cam.zoom)
+        # 2) Zona de perigo e estado explícito do inimigo ([PREPARANDO] -> [EXECUTANDO])
+        larg_zona = int(160 * self.cam.zoom)
         zona = pygame.Rect(0, 0, larg_zona, 28)
         zona.center = (cx, int(pe_y))
         sup = pygame.Surface((zona.width, zona.height), pygame.SRCALPHA)
@@ -2092,39 +2308,70 @@ class CombateExpedition33:
             pygame.draw.ellipse(sup, (80, 200, 255, int(70 + 110 * pulso)), sup.get_rect())
         elif tipo == "VENENO":
             pygame.draw.ellipse(sup, (60, 200, 40, int(70 + 110 * pulso)), sup.get_rect())
-        elif tipo == "RUGIDO":
-            pygame.draw.ellipse(sup, (160, 100, 255, int(70 + 110 * pulso)), sup.get_rect())
+        elif tipo in ("LANCA_DO_VAZIO", "GUILHOTINA_TRIPLICE", "FURIA_ELOS_DETONACAO", "RUGIDO"):
+            pygame.draw.ellipse(sup, (165, 95, 255, int(75 + 110 * pulso)), sup.get_rect())
         else:
-            pygame.draw.ellipse(sup, (255, 70, 40, int(70 + 110 * pulso)), sup.get_rect())
+            pygame.draw.ellipse(sup, (255, 70, 40, int(75 + 110 * pulso)), sup.get_rect())
         surface.blit(sup, zona.topleft)
         pygame.draw.ellipse(surface, cor, zona, 3)
 
-        # 3) Efeito visual do golpe viajando
+        # 3) Efeito visual exclusivo de cada ataque dos arquétipos
         x0, x1 = rect_inim.centerx, cx
         sentido = -1 if x1 < x0 else 1
-        inicio = 0.30 if tipo in ("ONDA_CHOQUE", "INVESTIDA") else 0.10
+        inicio = 0.25 if tipo in ("ONDA_CHOQUE", "INVESTIDA", "CLAVA_SISMICA", "BOTE_FENDIDO", "LANCA_DO_VAZIO", "FURIA_ELOS_CORRENTES", "FURIA_ELOS_DETONACAO") else 0.10
         frac = max(0.0, min(1.0, (progresso - inicio) / (1.0 - inicio)))
         if frac > 0.0:
             fx = int(x0 + (x1 - x0) * frac)
-            if tipo == "ONDA_CHOQUE":
-                pygame.draw.line(surface, (110, 40, 45), (x0, int(pe_y)), (x1, int(pe_y)), 3)
-                altura_onda = 56 * self.cam.zoom * (0.7 + 0.3 * pulso)
-                for i in range(6):
+            if tipo in ("ONDA_CHOQUE", "CLAVA_SISMICA"):
+                # Runa carmesim sob a clava + onda sísmica rasgando o piso
+                if tipo == "CLAVA_SISMICA":
+                    pygame.draw.circle(surface, (255, 55, 70), (rect_inim.centerx, int(pe_y) - 8), int(36 + 18 * pulso), 3)
+                pygame.draw.line(surface, (145, 45, 50), (x0, int(pe_y)), (x1, int(pe_y)), 4)
+                altura_onda = (64 if tipo == "CLAVA_SISMICA" else 56) * self.cam.zoom * (0.72 + 0.28 * pulso)
+                for i in range(7):
                     px = fx - sentido * i * 24
-                    h = int(altura_onda * (1.0 - i * 0.15))
-                    cor_pico = (255, 200 - i * 18, 60) if i == 0 else (235, 90 - i * 8, 45)
-                    pygame.draw.polygon(surface, cor_pico, [(px - 13, int(pe_y)), (px, int(pe_y) - h), (px + 13, int(pe_y))])
-            elif tipo == "INVESTIDA":
-                # Rastro de poeira / impacto no chão
-                for i in range(8):
+                    h = int(altura_onda * (1.0 - i * 0.13))
+                    cor_pico = (255, 205 - i * 16, 65) if i == 0 else (235, 70 - i * 6, 45)
+                    pygame.draw.polygon(surface, cor_pico, [(px - 14, int(pe_y)), (px, int(pe_y) - h), (px + 14, int(pe_y))])
+            elif tipo in ("INVESTIDA", "BOTE_FENDIDO"):
+                # Rastro baixo veloz do Carniçal / Bote Fendido
+                for i in range(9):
                     px = fx - sentido * i * 18
-                    sz = max(3, int(14 - i * 1.5))
-                    alpha_p = max(30, 220 - i * 25)
+                    sz = max(4, int(15 - i * 1.4))
+                    alpha_p = max(35, 230 - i * 24)
                     d_surf = pygame.Surface((sz * 2, sz * 2), pygame.SRCALPHA)
-                    pygame.draw.circle(d_surf, (200, 100, 40, alpha_p), (sz, sz), sz)
-                    surface.blit(d_surf, (px - sz, int(pe_y) - sz - 6))
+                    cor_rastro = (255, 110, 50, alpha_p) if tipo == "BOTE_FENDIDO" else (200, 100, 40, alpha_p)
+                    pygame.draw.circle(d_surf, cor_rastro, (sz, sz), sz)
+                    surface.blit(d_surf, (px - sz, int(pe_y) - sz - 8))
+            elif tipo == "LANCA_DO_VAZIO":
+                # Feixe horizontal contínuo à meia-altura (impulável; só rolamento passa por baixo)
+                beam_y = int(pe_y - rect_jog.height * 0.56)
+                espessura = int((18 + 12 * pulso) * (0.5 + 0.5 * frac))
+                pygame.draw.line(surface, (115, 45, 215), (x0, beam_y), (cx - 120 * (-sentido), beam_y), espessura + 10)
+                pygame.draw.line(surface, (195, 130, 255), (x0, beam_y), (cx - 120 * (-sentido), beam_y), espessura)
+                pygame.draw.line(surface, (240, 245, 255), (x0, beam_y), (cx - 120 * (-sentido), beam_y), max(3, espessura // 3))
+            elif tipo == "GUILHOTINA_TRIPLICE":
+                # Três arcos vermelhos altos (2º quebra o parry!)
+                for k_arc in range(3):
+                    off_arc = (k_arc - 1) * 18
+                    arco_r = pygame.Rect(cx - 70 + off_arc, int(pe_y) - int(rect_jog.height * 1.05), 140, int(rect_jog.height * 0.85))
+                    cor_arc = (255, 220, 110) if k_arc == 1 else (235, 65, 105)
+                    pygame.draw.arc(surface, cor_arc, arco_r, 0.25, 2.75, 4 if k_arc == 1 else 3)
+            elif tipo == "FURIA_ELOS_CORRENTES":
+                # Correntes espectrais douradas rasgando o piso
+                for i in range(0, abs(x1 - x0) + 90, 28):
+                    cx_elo = x0 + sentido * min(abs(x1 - x0) + 60, int(i * (0.35 + 0.65 * frac)))
+                    ey = int(pe_y) - int(6 + 10 * abs(math.sin(t * 14 + i * 0.2)))
+                    pygame.draw.ellipse(surface, (255, 200, 70), (cx_elo - 12, ey - 8, 24, 14), 3)
+            elif tipo == "FURIA_ELOS_DETONACAO":
+                # Orbes aéreos descendo em sequência (exigem rolamento no timing)
+                for k_orb in range(3):
+                    ox = cx + (k_orb - 1) * 44
+                    oy = int(pe_y - 165 * (1.0 - frac) - k_orb * 18)
+                    ro = int(14 + 5 * pulso)
+                    pygame.draw.circle(surface, (110, 225, 255), (ox, oy), ro + 4, 2)
+                    pygame.draw.circle(surface, (235, 245, 255), (ox, oy), max(4, ro - 4))
             elif tipo == "VENENO":
-                # Nuvem de veneno se espalhando
                 for i in range(10):
                     px = fx - sentido * i * 14 + int(math.sin(t * 8 + i) * 8)
                     py_n = int(pe_y) - 20 - i * 4 + int(math.cos(t * 6 + i * 2) * 10)
@@ -2133,7 +2380,6 @@ class CombateExpedition33:
                     pygame.draw.circle(v_surf, (90, 200, 50, max(20, 180 - i * 18)), (sz, sz), sz)
                     surface.blit(v_surf, (px - sz, py_n - sz))
             elif tipo == "RUGIDO":
-                # Ondas circulares saindo do inimigo
                 for i in range(4):
                     raio = int(frac * 250 + i * 30)
                     alpha_r = max(20, 150 - i * 35 - int(frac * 80))
@@ -2184,8 +2430,19 @@ class CombateExpedition33:
 
         if self.janela_parry_ativa > 0:
             pygame.draw.circle(surface, (80, 255, 220), rect_jog.center, int(rect_jog.width * 0.75), 3)
-        elif self.janela_desvio_ativa > 0:
-            pygame.draw.circle(surface, (110, 190, 255), rect_jog.center, int(rect_jog.width * 0.70), 2)
+        elif self.esquiva_frames_restantes > 0 or self.hitbox_jogador_reduzida or self.janela_desvio_ativa > 0:
+            hurt_meio = pygame.Rect(
+                rect_jog.x - 4,
+                rect_jog.bottom - max(18, rect_jog.height // 2),
+                rect_jog.width + 8,
+                max(18, rect_jog.height // 2),
+            )
+            pygame.draw.rect(surface, (115, 240, 255), hurt_meio, 2, border_radius=8)
+            lbl_if = fonte_micro.render(f"14f I-FRAMES ({max(0, self.esquiva_frames_restantes)})", True, (130, 245, 255))
+            surface.blit(lbl_if, (hurt_meio.centerx - lbl_if.get_width() // 2, hurt_meio.y - 16))
+        if self.pogo_ativo:
+            arco_pogo = pygame.Rect(rect_jog.x - 10, rect_jog.bottom - 14, rect_jog.width + 20, 22)
+            pygame.draw.arc(surface, (110, 255, 220), arco_pogo, math.pi, 2.0 * math.pi, 4)
 
         # Inimigo focado / atacante ativo
         alvo_cb = None
@@ -2209,6 +2466,14 @@ class CombateExpedition33:
                 rect_inim = pygame.Rect(int(tx - 35), int(ty - 90), 70, 90)
             else:
                 rect_inim = pygame.Rect(600, 240, 120, 180)
+
+        if self.estado in ("TURNO_INIMIGO", "CONTRA_ATAQUE") and self.estado_golpe_inimigo:
+            cor_st = (
+                (255, 200, 80) if self.estado_golpe_inimigo == inimigos.ESTADO_PREPARANDO
+                else ((255, 75, 95) if self.estado_golpe_inimigo == inimigos.ESTADO_EXECUTANDO else (105, 235, 255))
+            )
+            txt_st = fonte_micro.render(f"[{self.estado_golpe_inimigo}]", True, cor_st)
+            surface.blit(txt_st, (rect_inim.centerx - txt_st.get_width() // 2, max(12, rect_inim.y - 36)))
 
         # Efeitos de aura de debuff nos inimigos
         for ali, cb in getattr(self, "combatentes_inimigos", []):

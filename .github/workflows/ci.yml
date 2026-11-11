@@ -41,6 +41,7 @@ jobs:
           pygame.init()
           pygame.display.set_mode((960, 540))
           import config, progresso, ranking, gerenciador_salas, menu
+          import player, inimigos, combate, combate_ui
           from splash_estudio import AnimacaoAberturaEstudio
           s = AnimacaoAberturaEstudio(960, 540)
           for _ in range(90):

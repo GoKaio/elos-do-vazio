@@ -1147,544 +1147,8 @@ class CameraMapa:
         )
 
 
-class JogadorMapa:
-    def __init__(self, x, y):
-        self.largura = 36
-        self.altura = 56
-        self.x = float(x)
-        self.y = float(y)
-        self.rect = pygame.Rect(int(self.x), int(self.y), self.largura, self.altura)
-
-        self.hp = CONFIG["jogador_hp_inicial"]
-        self.max_hp = CONFIG["jogador_hp_inicial"]
-        self.progresso_ref = None
-
-        self.vx = 0.0
-        self.vy = 0.0
-        self.velocidade = 340.0
-        self.forca_pulo = -640.0
-        self.gravidade = 1500.0
-
-        self.no_chao = False
-        self.olhando_direita = True
-        self.tempo_coyote = 0.0
-        self.buffer_pulo = 0.0
-
-        self.atacando = False
-        self.tempo_ataque = 0.0
-        self.hitbox_ataque = None
-        self.tempo_imune_armadilha = 0.0
-        self.flash_armadilha = 0.0
-
-        self.classe = "GUERREIRO"
-        self.anim = criar_animador(CONFIG.get("sprite_jogador"))
-        self.invocacoes = []
-        self.alvo_invocacao = 0
-        self.tempo_invocar = 0.0
-        mult_p = self.progresso_ref.multiplicador_poder() if self.progresso_ref else 1.0
-        self.dano_invocacao = 6.48 * mult_p
-        self.runas_ativadas = set()
-
-    def solicitar_pulo(self):
-        self.buffer_pulo = 0.15
-        if self.no_chao or self.tempo_coyote > 0.0:
-            audio.tocar_sfx("teleport", 0.45)
-
-    def cortar_pulo(self):
-        if self.vy < -220:
-            self.vy = -220
-
-    def atacar(self):
-        if not self.atacando:
-            self.atacando = True
-            audio.tocar_sfx("sword", 0.75)
-            self.tempo_ataque = 0.22
-            anim_ataque = random.choice(["attack", "attack2", "attack3"])
-            self.anim.tocar(anim_ataque, loop=False, duracao=0.22, forcar=True)
-            alcance = 56
-            offset_x = self.largura if self.olhando_direita else -alcance
-            self.hitbox_ataque = pygame.Rect(int(self.x + offset_x), int(self.y + 10), alcance, 36)
-
-    def mover_horizontal(self, direcao):
-        self.vx = direcao * self.velocidade
-        if direcao > 0:
-            self.olhando_direita = True
-        elif direcao < 0:
-            self.olhando_direita = False
-
-    def update(self, dt, mapa_atual, grupo_sala=None):
-        self.tempo_imune_armadilha = max(0.0, self.tempo_imune_armadilha - dt)
-        self.flash_armadilha = max(0.0, self.flash_armadilha - dt)
-        keys = pygame.key.get_pressed()
-        self.vx = 0.0
-        if BOT.ativo:
-            self.vx = self.velocidade
-        else:
-            if keys[pygame.K_a] or keys[pygame.K_LEFT]:
-                self.vx -= self.velocidade
-            if keys[pygame.K_d] or keys[pygame.K_RIGHT]:
-                self.vx += self.velocidade
-            # Analógico esquerdo e D-Pad: movimento suave; deadzone evita drift do controle.
-            joy = obter_controle_ativo()
-            if joy is not None:
-                try:
-                    eixo_x = joy.get_axis(0) if joy.get_numaxes() > 0 else 0.0
-                    if abs(eixo_x) > 0.18:
-                        self.vx = float(eixo_x) * self.velocidade
-                    elif joy.get_numhats() > 0:
-                        hx, _ = joy.get_hat(0)
-                        if hx != 0:
-                            self.vx = float(hx) * self.velocidade
-                except pygame.error:
-                    pass
-        if self.vx < -1:
-            self.olhando_direita = False
-        elif self.vx > 1:
-            self.olhando_direita = True
-
-        if self.no_chao:
-            self.tempo_coyote = 0.12
-        else:
-            self.tempo_coyote = max(0.0, self.tempo_coyote - dt)
-
-        self.buffer_pulo = max(0.0, self.buffer_pulo - dt)
-
-        if self.buffer_pulo > 0.0 and (self.no_chao or self.tempo_coyote > 0.0):
-            self.vy = self.forca_pulo
-            self.buffer_pulo = 0.0
-            self.tempo_coyote = 0.0
-            self.no_chao = False
-
-        if self.atacando:
-            self.tempo_ataque -= dt
-            if self.tempo_ataque <= 0:
-                self.atacando = False
-                self.hitbox_ataque = None
-            else:
-                alcance = 56
-                offset_x = self.largura if self.olhando_direita else -alcance
-                self.hitbox_ataque = pygame.Rect(int(self.x + offset_x), int(self.y + 10), alcance, 36)
-
-        # Movimento Horizontal com verificação de bloqueio por portões trancados e alvenaria maciça
-        dx = self.vx * dt
-        portoes = (grupo_sala.get("portoes", []) if grupo_sala else mapa_atual.get("portoes", []))
-        paredes = mapa_atual.get("paredes", [])
-        larg_m = mapa_atual.get("largura", LARGURA_MUNDO)
-
-        bloqueios_solidos = [g["rect"] for g in portoes if not g.get("aberto", False)] + list(paredes)
-
-        # Reduz 2px nas extremidades verticais para evitar travar na quina do piso ao andar ou subir
-        futuro_x = pygame.Rect(int(self.x + dx), int(self.y) + 2, self.largura, max(4, self.altura - 4))
-        bloqueado_x = False
-        for b_rect in bloqueios_solidos:
-            if futuro_x.colliderect(b_rect):
-                # Permite subir degrau minimo quando os pes apenas tangenciam o topo da parede
-                if self.vy >= 0 and b_rect.top > 0 and (self.y + self.altura) - b_rect.top <= 6.0:
-                    continue
-                bloqueado_x = True
-                if dx > 0:
-                    self.x = float(b_rect.left - self.largura)
-                elif dx < 0:
-                    self.x = float(b_rect.right)
-                self.vx = 0.0
-                break
-        if not bloqueado_x:
-            self.x += dx
-
-        self.x = max(0.0, min(float(larg_m - self.largura), self.x))
-
-        # Gravidade e Movimento Vertical
-        self.vy += self.gravidade * dt
-        dy = self.vy * dt
-        pe_anterior = self.y + self.altura
-        em_superficie = False
-
-        # Colisão vertical com portões trancados e paredes sólidas (sem truncamento int de subpixel)
-        futuro_topo = self.y + dy
-        futuro_pe = futuro_topo + self.altura
-        limite_v = max(14.0, abs(dy) + 8.0)
-        for b_rect in bloqueios_solidos:
-            if b_rect.top > 0 and self.vy >= 0 and pe_anterior <= b_rect.top + limite_v and futuro_pe >= b_rect.top - 1.5:
-                if (self.x + self.largura - 2) > b_rect.left and (self.x + 2) < b_rect.right:
-                    self.y = float(b_rect.top - self.altura)
-                    self.vy = 0.0
-                    em_superficie = True
-                    dy = 0.0
-                    break
-            elif self.vy < 0 and self.y >= b_rect.bottom - limite_v and futuro_topo <= b_rect.bottom:
-                if (self.x + self.largura - 4) > b_rect.left and (self.x + 4) < b_rect.right:
-                    self.y = float(b_rect.bottom)
-                    self.vy = 0.0
-                    dy = 0.0
-                    break
-
-        self.y += dy
-        if self.y < 0.0:
-            self.y = 0.0
-            if self.vy < 0.0:
-                self.vy = 0.0
-
-        # Colisão com o solo da sala
-        chao = mapa_atual["chao"]
-        if (self.y + self.altura) >= chao.top:
-            self.y = chao.top - self.altura
-            self.vy = 0.0
-            em_superficie = True
-
-        # Colisão com plataformas em múltiplos andares e pontes levadiças ativas (com tolerância dinâmica)
-        pontes_ativas = [
-            g["ponte"] for g in (grupo_sala.get("portoes", []) if grupo_sala else [])
-            if g.get("aberto", False) and "ponte" in g
-        ]
-        self._pontes_ativas = pontes_ativas
-        limite_tol = max(14.0, dy + 8.0)
-        plat_apoiada = None
-        for plat in list(mapa_atual["plataformas"]) + pontes_ativas:
-            if self.vy >= 0:
-                if pe_anterior <= plat.top + limite_tol + 6.0 and (self.y + self.altura) >= plat.top - 4:
-                    if (self.x + self.largura - 4) > plat.left and (self.x + 4) < plat.right:
-                        self.y = plat.top - self.altura
-                        self.vy = 0.0
-                        em_superficie = True
-                        plat_apoiada = plat
-
-        if plat_apoiada is not None:
-            for pm in mapa_atual.get("plataformas_moveis", []):
-                if pm["rect"] is plat_apoiada:
-                    self.x = max(0.0, min(float(larg_m - self.largura), self.x + pm.get("dx", 0.0)))
-                    break
-
-        self.no_chao = em_superficie
-        self.rect.x = int(self.x)
-        self.rect.y = int(self.y)
-
-        if not self.atacando:
-            if not self.no_chao:
-                self.anim.tocar("jump")
-            else:
-                self.anim.tocar("walk" if self.vx != 0 else "idle")
-        self.anim.update(dt)
-
-    def escolher_classe(self, classe):
-        """Alterna entre três arquétipos jogáveis mantendo o progresso atual."""
-        perfis = {
-            "GUERREIRO": ("Hero", 120, 340.0, -640.0),
-            "PATRULHEIRO": ("Orc Bronze", 105, 390.0, -690.0),
-            "NECROMANTE": ("Necromante", 95, 320.0, -610.0),
-        }
-        if classe not in perfis:
-            return
-        self.classe = classe
-        sprite, vida, velocidade, pulo = perfis[classe]
-        self.max_hp = max(self.max_hp, vida)
-        self.hp = min(self.max_hp, self.hp + 10)
-        self.velocidade, self.forca_pulo = velocidade, pulo
-        self.anim = criar_animador(sprite)
-
-    def invocar_esqueleto(self, inimigos):
-        if self.classe != "NECROMANTE" or self.tempo_invocar > 0:
-            return
-        alvos = [i for i in inimigos if i.vivo]
-        if not alvos:
-            return
-        alvo = alvos[self.alvo_invocacao % len(alvos)]
-        self.invocacoes.append({"alvo": alvo, "vida": 8.0, "tempo_ataque": 0.0, "x": self.x - 18.0})
-        self.tempo_invocar = 5.0
-
-    def atualizar_invocacoes(self, dt, inimigos):
-        self.tempo_invocar = max(0.0, self.tempo_invocar - dt)
-        vivos = [i for i in inimigos if i.vivo]
-        for inv in self.invocacoes[:]:
-            inv["vida"] -= dt
-            alvo = inv["alvo"]
-            if not alvo.vivo and vivos:
-                alvo = min(vivos, key=lambda i: abs(i.x - inv["x"]))
-                inv["alvo"] = alvo
-            if not alvo.vivo or inv["vida"] <= 0:
-                self.invocacoes.remove(inv)
-                continue
-            dx = alvo.x - inv["x"]
-            inv["x"] += max(-150 * dt, min(150 * dt, dx))
-            inv["tempo_ataque"] -= dt
-            if abs(dx) < 65 and inv["tempo_ataque"] <= 0:
-                alvo.hp = max(0, alvo.hp - self.dano_invocacao)
-                inv["tempo_ataque"] = 1.0
-                if alvo.hp <= 0:
-                    alvo.vivo = False
-
-    def desenhar_invocacoes(self, surface, camera):
-        for inv in self.invocacoes:
-            x = int(inv["x"] - camera.offset_x)
-            alvo = inv["alvo"]
-            cor = (170, 225, 220) if alvo.vivo else (100, 100, 110)
-            pygame.draw.ellipse(surface, (20, 12, 30), (x + 4, 459, 28, 8))
-            pygame.draw.circle(surface, cor, (x + 18, 438), 10)
-            pygame.draw.rect(surface, (105, 125, 150), (x + 8, 447, 20, 28), border_radius=5)
-            pygame.draw.line(surface, (210, 220, 235), (x + 8, 452), (x, 468), 3)
-            pygame.draw.line(surface, (210, 220, 235), (x + 28, 452), (x + 36, 468), 3)
-            if alvo.vivo:
-                pygame.draw.line(surface, (185, 90, 255), (x + 18, 434),
-                                 (int(alvo.rect.centerx - camera.offset_x), alvo.rect.centery), 1)
-
-    def draw(self, surface, camera):
-        pos_tela = camera.aplicar(self.rect)
-        # Sombra eliptica ancorada na superficie abaixo do jogador (sem acompanhar o sprite no ar).
-        mapa = DADOS_MAPAS.get(getattr(self, "mapa_idx", 0), DADOS_MAPAS[0])
-        pe_x = self.x + self.largura / 2
-        paredes_pisaveis = [pr for pr in mapa.get("paredes", []) if pr.y > 120 and pr.width >= 60 and (pr.height <= 42 or pr.width >= 68)]
-        pontes_ativas = getattr(self, "_pontes_ativas", [])
-        superficies = [mapa["chao"].top] + [
-            pl.top for pl in (list(mapa["plataformas"]) + paredes_pisaveis + pontes_ativas)
-            if pl.left - 8 <= pe_x <= pl.right + 8 and pl.top >= self.y + self.altura - 4
-        ]
-        base_y = min(superficies) if superficies else mapa["chao"].top
-        altura_ar = max(0, base_y - (self.y + self.altura))
-        sombra_y = int(base_y - camera.offset_y + getattr(camera, "shake_y", 0.0))
-        if -20 <= sombra_y <= ALTURA_TELA + 20:
-            sombra_x = int(pos_tela.centerx)
-            sombra_w = max(12, int(34 - min(22, altura_ar * 0.045)))
-            sombra_h = max(4, int(10 - min(6, altura_ar * 0.013)))
-            # Sombra elíptica projetada no chão/plataforma logo abaixo dos pés do jogador
-            sombra = pygame.Surface((sombra_w * 2, sombra_h * 2), pygame.SRCALPHA)
-            pygame.draw.ellipse(sombra, (0, 0, 0, max(40, 140 - int(altura_ar * 0.30))),
-                                (sombra_w // 2, sombra_h // 2, sombra_w, sombra_h))
-            surface.blit(sombra, (sombra_x - sombra_w, sombra_y - sombra_h))
-
-        if self.anim.ativo:
-            self.anim.desenhar(surface, pos_tela, espelhar=not self.olhando_direita,
-                               escala_extra=ESCALA_SPRITE_MAPA)
-        else:
-            pygame.draw.rect(surface, (230, 235, 245), pos_tela, border_radius=4)
-            olho_x = pos_tela.x + (24 if self.olhando_direita else 6)
-            pygame.draw.circle(surface, (25, 25, 35), (olho_x, pos_tela.y + 16), 4)
-
-        if self.flash_armadilha > 0:
-            brilho = pygame.Surface((pos_tela.w + 10, pos_tela.h + 8), pygame.SRCALPHA)
-            pygame.draw.rect(brilho, (255, 65, 85, 90), brilho.get_rect(), border_radius=5)
-            surface.blit(brilho, (pos_tela.x - 5, pos_tela.y - 4))
-
-        if self.atacando and self.hitbox_ataque:
-            hitbox_tela = camera.aplicar(self.hitbox_ataque)
-            if self.anim.ativo:
-                pygame.draw.rect(surface, (80, 245, 215), hitbox_tela, 2, border_radius=4)
-            else:
-                pygame.draw.rect(surface, (80, 245, 215), hitbox_tela, border_radius=4)
-
-
-class InimigoMapa:
-    """Inimigo do mapa 2D.
-
-    Estados: PATRULHA -> PAUSA -> PATRULHA ... ; ao ver o jogador: ALERTA -> PERSEGUIR;
-    ao perder o jogador de vista: VOLTAR -> PATRULHA.
-    O inimigo nunca sai da plataforma/chao em que nasceu (nao fica flutuando).
-    """
-
-    def __init__(self, x, y, dist_patrulha, nome, hp, cor, is_boss=False, num_combos=2, mapa=None, sprite=None):
-        self.is_boss = is_boss
-        self.largura = 68 if is_boss else 42
-        self.altura = 88 if is_boss else 52
-        self.x = float(x)
-        self.y = float(y)
-        self.rect = pygame.Rect(int(self.x), int(self.y), self.largura, self.altura)
-
-        self.vel_patrulha = 90.0 if is_boss else 75.0
-        self.vel_perseguir = 150.0 if is_boss else 135.0
-        self.alcance_visao = 380 if is_boss else 260
-        self.dist_patrulha = dist_patrulha
-        self.pos_inicial_x = float(x)
-
-        self.nome = nome
-        self.hp = hp
-        self.max_hp = hp  # HP máximo fixo (nunca muda com dano)
-        self._hp_base = hp
-        self.cor = cor
-        self.num_combos = num_combos
-        self.vivo = True
-
-        self.direcao = random.choice((-1, 1))
-        self.estado = "PATRULHA"
-        self.timer_estado = 0.0
-        self.tempo_perdeu = 0.0
-        self.tempo_anim = random.uniform(0.0, 6.0)
-        self.andando = False
-        self.anim = criar_animador(sprite)
-
-        self._calcular_limites(mapa)
-
-    def _calcular_limites(self, mapa):
-        """Descobre em que superfície (plataforma, laje ou chão) o inimigo está e limita sua patrulha com segurança."""
-        pe = self.y + self.altura
-        plataforma = None
-        if mapa:
-            superficies = list(mapa["plataformas"]) + [
-                p for p in mapa.get("paredes", []) if p.y > 120 and p.width >= 90
-            ]
-            candidatas = []
-            for plat in superficies:
-                sobre_plataforma = (self.x + self.largura > plat.left + 2 and self.x < plat.right - 2)
-                diferenca = plat.top - pe
-                if sobre_plataforma and -8 <= diferenca <= 95:
-                    candidatas.append((abs(diferenca), plat))
-            if candidatas:
-                plataforma = min(candidatas, key=lambda item: item[0])[1]
-                self.y = float(plataforma.top - self.altura)
-                self.rect.y = int(self.y)
-                pe = self.y + self.altura
-            elif pe <= mapa["chao"].top and mapa["chao"].top - pe <= 95:
-                self.y = float(mapa["chao"].top - self.altura)
-                self.rect.y = int(self.y)
-                pe = self.y + self.altura
-
-        if plataforma is not None:
-            # Em cima de plataforma ou laje: respeita bordas da superfície (nunca cai no abismo)
-            self.cham_min = float(plataforma.left + 4)
-            self.cham_max = float(plataforma.right - self.largura - 4)
-        else:
-            # No chão: pode perseguir sem invadir a zona segura de spawn inicial do herói
-            folga = 420 if self.is_boss else 260
-            larg_m = mapa.get("largura", LARGURA_MUNDO) if mapa else LARGURA_MUNDO
-            spawn_x = mapa.get("spawn_heroi", (100, 0))[0] if mapa else 100
-            min_seguro = float(spawn_x + 260) if self.pos_inicial_x >= spawn_x + 320 else 40.0
-            self.cham_min = max(min_seguro, self.pos_inicial_x - self.dist_patrulha - folga)
-            self.cham_max = min(larg_m - self.largura - 40.0, self.pos_inicial_x + self.dist_patrulha + folga)
-
-        if self.cham_min > self.cham_max:
-            self.cham_min = self.cham_max = max(40.0, self.pos_inicial_x)
-
-        self.pat_min = max(self.cham_min, self.pos_inicial_x - self.dist_patrulha)
-        self.pat_max = min(self.cham_max, self.pos_inicial_x + self.dist_patrulha)
-        if self.pat_min > self.pat_max:
-            self.pat_min = self.pat_max = max(self.cham_min, min(self.cham_max, self.pos_inicial_x))
-        self.pos_inicial_x = max(self.pat_min, min(self.pat_max, self.pos_inicial_x))
-        self.x = max(self.cham_min, min(self.cham_max, self.x))
-        self.rect.x = int(self.x)
-
-    def resetar_comportamento(self):
-        self.estado = "PATRULHA"
-        self.timer_estado = 0.0
-        self.tempo_perdeu = 0.0
-
-    def _mover(self, delta, minimo, maximo):
-        self.x = max(minimo, min(maximo, self.x + delta))
-        self.rect.x = int(self.x)
-
-    def update(self, dt, jogador=None):
-        if not self.vivo:
-            return
-        self.tempo_anim += dt
-        self.andando = False
-
-        # --- percepcao do jogador (so enxerga se estiver no mesmo nivel) ---
-        ve_jogador = False
-        dx = 0.0
-        if jogador is not None:
-            dx = (jogador.x + jogador.largura / 2) - (self.x + self.largura / 2)
-            mesmo_nivel = abs((jogador.y + jogador.altura) - (self.y + self.altura)) <= 90
-            perseguindo = self.estado == "PERSEGUIR"
-            alcance = self.alcance_visao * (1.5 if perseguindo else 1.0)
-            na_frente = (dx * self.direcao) >= -100
-            ve_jogador = mesmo_nivel and abs(dx) <= alcance and (na_frente or perseguindo)
-
-        if self.estado in ("PATRULHA", "PAUSA", "VOLTAR") and ve_jogador:
-            self.estado = "ALERTA"
-            self.timer_estado = 0.25 if self.is_boss else 0.35
-            self.direcao = 1 if dx >= 0 else -1
-
-        # --- comportamento por estado ---
-        if self.estado == "PATRULHA":
-            self._mover(self.direcao * self.vel_patrulha * dt, self.pat_min, self.pat_max)
-            self.andando = True
-            if (self.direcao > 0 and self.x >= self.pat_max) or (self.direcao < 0 and self.x <= self.pat_min):
-                self.estado = "PAUSA"
-                self.timer_estado = random.uniform(0.5, 1.1)
-                self.andando = False
-
-        elif self.estado == "PAUSA":
-            self.timer_estado -= dt
-            if self.timer_estado <= 0:
-                self.direcao *= -1
-                self.estado = "PATRULHA"
-
-        elif self.estado == "ALERTA":
-            self.direcao = 1 if dx >= 0 else -1
-            self.timer_estado -= dt
-            if self.timer_estado <= 0:
-                self.estado = "PERSEGUIR"
-                self.tempo_perdeu = 0.0
-
-        elif self.estado == "PERSEGUIR":
-            if ve_jogador:
-                self.tempo_perdeu = 0.0
-            else:
-                self.tempo_perdeu += dt
-                if self.tempo_perdeu >= 1.6:
-                    self.estado = "VOLTAR"
-            if abs(dx) > 6:
-                self.direcao = 1 if dx > 0 else -1
-                antes = self.x
-                self._mover(self.direcao * self.vel_perseguir * dt, self.cham_min, self.cham_max)
-                self.andando = abs(self.x - antes) > 0.01
-
-        elif self.estado == "VOLTAR":
-            alvo = self.pos_inicial_x
-            distancia = alvo - self.x
-            if abs(distancia) <= 4.0:
-                self.estado = "PATRULHA"
-            else:
-                self.direcao = 1 if distancia > 0 else -1
-                passo = min(abs(distancia), self.vel_patrulha * dt)
-                self._mover(self.direcao * passo, self.cham_min, self.cham_max)
-                self.andando = True
-
-        self.anim.tocar("walk" if self.andando else "idle")
-        self.anim.update(dt)
-
-    def draw(self, surface, camera):
-        if not self.vivo:
-            return
-        pos_tela = camera.aplicar(self.rect)
-        # Sombra elíptica de contato nos pés do inimigo/chefe ancorada no chão
-        sombra_w = 42 if self.is_boss else 26
-        sombra_h = 10 if self.is_boss else 6
-        sombra = pygame.Surface((sombra_w * 2, sombra_h * 2), pygame.SRCALPHA)
-        pygame.draw.ellipse(sombra, (0, 0, 0, 140 if self.is_boss else 110),
-                            (sombra_w // 2, sombra_h // 2, sombra_w, sombra_h))
-        surface.blit(sombra, (pos_tela.centerx - sombra_w, pos_tela.bottom - sombra_h // 2))
-
-        olhar = self.direcao
-
-        if self.anim.ativo:
-            # Os sprites do pack olham para a direita; espelha quando anda para a esquerda
-            self.anim.desenhar(surface, pos_tela, espelhar=(olhar < 0), escala_extra=ESCALA_SPRITE_MAPA)
-            if self.is_boss:
-                lbl = fonte_pequena.render(self.nome, True, (255, 220, 110))
-                surface.blit(lbl, (pos_tela.centerx - lbl.get_width() // 2, pos_tela.top - 40))
-        elif self.is_boss:
-            pygame.draw.rect(surface, (40, 20, 55), pos_tela.inflate(12, 12), border_radius=8)
-            pygame.draw.rect(surface, self.cor, pos_tela, border_radius=6)
-            pygame.draw.rect(surface, (255, 215, 90), pos_tela, 3, border_radius=6)
-
-            chifre_esq = [(pos_tela.left + 8, pos_tela.top), (pos_tela.left - 6, pos_tela.top - 22), (pos_tela.left + 22, pos_tela.top)]
-            chifre_dir = [(pos_tela.right - 8, pos_tela.top), (pos_tela.right + 6, pos_tela.top - 22), (pos_tela.right - 22, pos_tela.top)]
-            pygame.draw.polygon(surface, (255, 215, 90), chifre_esq)
-            pygame.draw.polygon(surface, (255, 215, 90), chifre_dir)
-
-            pygame.draw.circle(surface, (255, 250, 130), (pos_tela.centerx - 12 + olhar * 4, pos_tela.y + 24), 6)
-            pygame.draw.circle(surface, (255, 250, 130), (pos_tela.centerx + 12 + olhar * 4, pos_tela.y + 24), 6)
-
-            lbl = fonte_pequena.render(self.nome, True, (255, 220, 110))
-            surface.blit(lbl, (pos_tela.centerx - lbl.get_width() // 2, pos_tela.top - 40))
-        else:
-            pygame.draw.rect(surface, self.cor, pos_tela, border_radius=4)
-            pygame.draw.rect(surface, (255, 130, 140), pos_tela, 2, border_radius=4)
-            pygame.draw.circle(surface, (255, 235, 90), (pos_tela.centerx + olhar * 8, pos_tela.y + 16), 5)
-
-        # Sinal de "!" quando percebeu / esta perseguindo o jogador
-        if self.estado in ("ALERTA", "PERSEGUIR"):
-            cor_alerta = (255, 90, 80) if self.estado == "PERSEGUIR" else (255, 230, 90)
-            lbl_a = fonte_grande.render("!", True, cor_alerta)
-            topo = pos_tela.top - (56 if self.is_boss else 26)
-            surface.blit(lbl_a, (pos_tela.centerx - lbl_a.get_width() // 2, topo))
+from player import Jogador, JogadorMapa
+from inimigos import InimigoMapa, criar_inimigo_mapa
 
 
 # ==============================================================================
@@ -1942,6 +1406,16 @@ def desenhar_hud_mapa(surface, mapa_idx, mapa_atual, jogador, grupo_sala, boss_a
         cristais_q, pocoes_q, vidas_q, vidas_max=3, margin=16
     )
 
+    chaves_q = getattr(jogador, "chaves_bolsa", 0)
+    if chaves_q > 0:
+        r_ch = pygame.Rect(16, 82, 134, 24)
+        ui_procedural.desenhar_painel_hud_compacto(surface, r_ch, alpha=235, borda_ouro=True, destacado=True)
+        pygame.draw.circle(surface, (253, 230, 138), (r_ch.left + 14, r_ch.centery), 5, 2)
+        pygame.draw.line(surface, (253, 230, 138), (r_ch.left + 19, r_ch.centery), (r_ch.left + 29, r_ch.centery), 2)
+        pygame.draw.line(surface, (253, 230, 138), (r_ch.left + 26, r_ch.centery), (r_ch.left + 26, r_ch.centery + 4), 2)
+        s_ch = fonte_pequena.render(f"Chaves: {chaves_q}", True, (253, 230, 138))
+        surface.blit(s_ch, (r_ch.left + 36, r_ch.centery - s_ch.get_height() // 2))
+
     obj_txt, obj_concluido = cenarios.obter_objetivo_sala(mapa_idx, mapa_atual, grupo_sala, jogador)
     sub_reg = cenarios.obter_sub_regiao(mapa_idx, jogador.y + jogador.altura / 2.0)
     texto_missao = f"{sub_reg} — {obj_txt}" if sub_reg else f"{mapa_atual['nome']} — {obj_txt}"
@@ -2091,6 +1565,80 @@ def main():
             surface.blit(surf_txt, (rect_b.centerx - surf_txt.get_width() // 2, rect_b.centery - surf_txt.get_height() // 2))
             y_pos += bh + 6
 
+    def _coletar_chave(chave, grupo, origem="interacao"):
+        if not chave or chave.get("coletada", False):
+            return False
+        chave["coletada"] = True
+        audio.tocar_sfx("potion", 0.9)
+        camera.tremer(intensidade=5.0, duracao=0.25)
+
+        jogador.hp = min(jogador.max_hp, jogador.hp + 15)
+        subiu_ch, nv_ch, _ = progresso.ganhar_xp(25)
+        extra_xp = f" • NÍVEL {nv_ch}!" if subiu_ch else " (+25 XP, +15 HP)"
+
+        alvo_id = chave.get("alvo")
+        portao_alvo = None
+        for g in grupo.get("portoes", []):
+            if g.get("id") == alvo_id:
+                portao_alvo = g
+                break
+
+        if portao_alvo is not None and not portao_alvo.get("aberto", False):
+            portao_alvo["aberto"] = True
+            adicionar_notificacao(
+                chave.get("msg_coletada", f"{chave.get('nome', 'Chave')}! Portão Destrancado{extra_xp}"),
+                cor=(120, 255, 160),
+            )
+        else:
+            # Portão já foi destrancado (ex: pela alavanca): chave vai para a bolsa + enfraquece o Chefe da sala!
+            jogador.chaves_bolsa = getattr(jogador, "chaves_bolsa", 0) + 1
+            boss_s = grupo.get("boss")
+            if boss_s and getattr(boss_s, "vivo", False) and boss_s.hp > 1 and not getattr(boss_s, "enfraquecido_por_chave", False):
+                boss_s.enfraquecido_por_chave = True
+                boss_s.hp = max(1, int(boss_s.hp * 0.85))
+                adicionar_notificacao(
+                    f"{chave.get('nome', 'Chave')} Guardada na Bolsa ({jogador.chaves_bolsa})! Chefe -15% HP{extra_xp}",
+                    cor=(253, 230, 138),
+                )
+            else:
+                adicionar_notificacao(
+                    f"{chave.get('nome', 'Chave')} Guardada na Bolsa ({jogador.chaves_bolsa}){extra_xp}",
+                    cor=(253, 230, 138),
+                )
+        return True
+
+    def _ativar_rel_sala7(ri, grupo, com_chave=False):
+        if ri in jogador.runas_ativadas:
+            return False
+        jogador.runas_ativadas.add(ri)
+        audio.tocar_sfx("door_open", 0.9)
+        camera.tremer(intensidade=5.5, duracao=0.3)
+
+        qtd = len(jogador.runas_ativadas)
+        boss_s7 = grupo.get("boss")
+        if boss_s7 and getattr(boss_s7, "vivo", False) and boss_s7.hp > 1:
+            boss_s7.hp = max(1, int(boss_s7.hp * 0.88))
+
+        if qtd == 1:
+            jogador.hp = min(jogador.max_hp, jogador.hp + 25)
+            progresso.ganhar_xp(15)
+            adicionar_notificacao("Relíquia 1/3 Sintonizada! Escudo do Chefe -12% HP (+25 HP, +15 XP)!", cor=(180, 140, 255))
+        elif qtd == 2:
+            if jogador.progresso_ref:
+                jogador.progresso_ref.adicionar_frasco_eter(1)
+            adicionar_notificacao("Relíquia 2/3 Sintonizada! Escudo Ruindo (-23% HP) +1 Frasco de Éter!", cor=(135, 220, 255))
+        else:
+            for g in grupo.get("portoes", []):
+                g["aberto"] = True
+            if boss_s7:
+                boss_s7.escudo_quebrado = True
+            adicionar_notificacao(
+                "ESCUDO ARCANO COLAPSADO (3/3)! Portal Liberado e Vantagem Total no Chefe!",
+                cor=(100, 255, 200),
+                duracao=4.2,
+            )
+        return True
+
     def interagir_com_mapa():
         px = jogador.x + jogador.largura / 2.0
         py = jogador.y + jogador.altura / 2.0
@@ -2120,19 +1668,11 @@ def main():
                     break
 
         if not interagiu:
-            # 2. Chaves Rúnicas
+            # 2. Chaves Rúnicas (portão, enfraquecimento de chefe e reserva na bolsa)
             for chave in grupo.get("chaves", []):
                 dist = math.hypot(px - chave["x"], py - chave["y"])
                 if dist <= 75.0 and not chave.get("coletada", False):
-                    chave["coletada"] = True
-                    interagiu = True
-                    audio.tocar_sfx("potion", 0.9)
-                    camera.tremer(intensidade=5.0, duracao=0.25)
-                    alvo_id = chave.get("alvo")
-                    for g in grupo.get("portoes", []):
-                        if g.get("id") == alvo_id:
-                            g["aberto"] = True
-                    adicionar_notificacao(chave.get("msg_coletada", f"{chave.get('nome', 'Chave')} Coletada! Portão Aberto!"), cor=(120, 255, 160))
+                    interagiu = _coletar_chave(chave, grupo, origem="E")
                     break
 
         if not interagiu:
@@ -2161,30 +1701,39 @@ def main():
                     break
 
         if not interagiu and mapa_idx == 6:
-            # 4. Relíquias da Sala 7 (Arquivo das Almas)
+            # 4. Relíquias da Sala 7 (Santuário do Guardião — Quebra o Escudo do Chefe e Abre o Altar)
             for ri, (rx, ry) in enumerate(cenarios.POS_RUNAS_SALA7):
                 dist = math.hypot(px - rx, py - ry)
                 if dist <= 95.0 and ri not in jogador.runas_ativadas:
-                    jogador.runas_ativadas.add(ri)
-                    interagiu = True
-                    audio.tocar_sfx("door_open", 0.9)
-                    camera.tremer(intensidade=5.0, duracao=0.3)
-                    adicionar_notificacao(f"Glifo Astral {ri + 1}/3 Sintonizado!", cor=(180, 120, 255))
-                    if len(jogador.runas_ativadas) >= 3:
-                        for g in grupo.get("portoes", []):
-                            g["aberto"] = True
-                        adicionar_notificacao("Barreira Cósmica Rompida! O Altar do Chefe está Aberto!", cor=(100, 255, 200), duracao=4.0)
+                    interagiu = _ativar_rel_sala7(ri, grupo)
                     break
 
         if not interagiu:
-            # 5. Feedback ao tentar atravessar portão trancado
+            # 5. Interação direta com portão trancado (usa Chave da Bolsa se houver!)
             for gate in grupo.get("portoes", []):
                 if not gate.get("aberto", False):
                     g_rect = gate["rect"]
-                    if abs(px - g_rect.centerx) < 65 and abs(py - g_rect.centery) < g_rect.height // 2 + 40:
-                        audio.tocar_sfx("parry", 0.6)
-                        camera.tremer(intensidade=3.0, duracao=0.15)
-                        adicionar_notificacao(f"{gate.get('nome', 'Portão')} Trancado! Explore a masmorra para abrir.", cor=(255, 120, 120))
+                    if abs(px - g_rect.centerx) < 68 and abs(py - g_rect.centery) < g_rect.height // 2 + 40:
+                        if getattr(jogador, "chaves_bolsa", 0) > 0:
+                            jogador.chaves_bolsa -= 1
+                            if mapa_idx == 6 and len(jogador.runas_ativadas) < 3:
+                                prox_r = next((idx_r for idx_r in range(3) if idx_r not in jogador.runas_ativadas), None)
+                                if prox_r is not None:
+                                    _ativar_rel_sala7(prox_r, grupo, com_chave=True)
+                                if len(jogador.runas_ativadas) >= 3:
+                                    gate["aberto"] = True
+                            else:
+                                gate["aberto"] = True
+                                audio.tocar_sfx("door_open", 0.9)
+                                camera.tremer(intensidade=6.0, duracao=0.25)
+                                adicionar_notificacao(f"Chave da Bolsa usada! {gate.get('nome', 'Portão')} Destrancado!", cor=(120, 255, 160))
+                        else:
+                            audio.tocar_sfx("parry", 0.6)
+                            camera.tremer(intensidade=3.0, duracao=0.15)
+                            if mapa_idx == 6:
+                                adicionar_notificacao("Sintonize as 3 Relíquias Arcanas para quebrar o selo!", cor=(190, 140, 255))
+                            else:
+                                adicionar_notificacao(f"{gate.get('nome', 'Portão')} Trancado! Acione a alavanca ou use uma Chave.", cor=(255, 120, 120))
                         break
 
     def entrar_na_sala(idx, x=None, hp=None):
@@ -2210,7 +1759,15 @@ def main():
         jogador.rect.x = int(jogador.x)
         jogador.rect.y = int(jogador.y)
         jogador.atacando = False
+        jogador.atacando_baixo = False
         jogador.hitbox_ataque = None
+        jogador.hitbox_pogo = None
+        jogador.em_esquiva = False
+        jogador.hitbox_reduzida = False
+        jogador.esquiva_frames_restantes = 0
+        jogador.iframes_tempo = 0.0
+        jogador.stagger_timer = 0.0
+        jogador.pulos_aereos_disponiveis = 1
         jogador.progresso_ref = progresso
         jogador.mapa_idx = idx
         jogador.max_hp = progresso.max_hp_total()
@@ -2472,14 +2029,17 @@ def main():
                             alternar_tela_cheia()
 
                 elif modo_jogo == "MAPA":
-                    # No mapa de exploração:
-                    # A (0) = Pulo
-                    # X (2) = Atacar com espada
+                    # No mapa de exploração (Estritamente 1 Jogador):
+                    # A (0) = Pulo / Salto de Reação (Vault Leap)
+                    # B (1) = Esquiva Rasteira / Roll Dash (14 I-Frames + hitbox pela metade)
+                    # X (2) = Atacar com espada (ou Pogo ↓ segurando para baixo no ar)
                     # Y (3) = Interagir com relíquias / puzzle
-                    # B (1) / Start (7) = Voltar ao Menu
+                    # Start (7) = Voltar ao Menu
                     # Back (6) = Alternar tela cheia
                     if btn == 0:
                         jogador.solicitar_pulo()
+                    elif btn == 1:
+                        jogador.iniciar_esquiva()
                     elif btn == 3:
                         interagir_com_mapa()
                     elif btn == 2:
@@ -2496,8 +2056,19 @@ def main():
                         if perto_interativo:
                             interagir_com_mapa()
                         else:
-                            jogador.atacar()
-                    elif btn in (1, 7):
+                            para_baixo_joy = False
+                            joy_at = obter_controle_ativo()
+                            if joy_at is not None:
+                                try:
+                                    if joy_at.get_numaxes() > 1 and joy_at.get_axis(1) > 0.45:
+                                        para_baixo_joy = True
+                                    elif joy_at.get_numhats() > 0 and joy_at.get_hat(0)[1] < 0:
+                                        para_baixo_joy = True
+                                except pygame.error:
+                                    pass
+                            keys_joy = pygame.key.get_pressed()
+                            jogador.atacar(para_baixo=para_baixo_joy or bool(keys_joy[pygame.K_s] or keys_joy[pygame.K_DOWN]))
+                    elif btn == 7:
                         pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_ESCAPE, mod=0, unicode="", simulado_controle=True))
                     elif btn == 6:
                         alternar_tela_cheia()
@@ -2704,8 +2275,17 @@ def main():
                         transicao.iniciar("MENU", estilo="fade", texto="RETORNO AO REINO", callback=_voltar_menu)
                     elif event.key in (pygame.K_SPACE, pygame.K_w, pygame.K_UP):
                         jogador.solicitar_pulo()
+                    elif event.key in (pygame.K_c, pygame.K_LSHIFT, pygame.K_RSHIFT):
+                        keys_dir = pygame.key.get_pressed()
+                        dir_esq = None
+                        if keys_dir[pygame.K_a] or keys_dir[pygame.K_LEFT]:
+                            dir_esq = -1
+                        elif keys_dir[pygame.K_d] or keys_dir[pygame.K_RIGHT]:
+                            dir_esq = 1
+                        jogador.iniciar_esquiva(direcao=dir_esq)
                     elif event.key == pygame.K_z:
-                        jogador.atacar()
+                        keys_atk = pygame.key.get_pressed()
+                        jogador.atacar(para_baixo=bool(keys_atk[pygame.K_s] or keys_atk[pygame.K_DOWN]))
                     elif event.key == pygame.K_e:
                         interagir_com_mapa()
 
@@ -2946,7 +2526,7 @@ def main():
             todos_inimigos_sala = grupo_sala["inimigos"] + [grupo_sala["boss"]]
             if BOT.ativo:
                 BOT.atualizar_mapa(dt, jogador, mapa_atual, todos_inimigos_sala, mapa_idx=mapa_idx)
-            jogador.update(dt, mapa_atual, grupo_sala)
+            jogador.update(dt, mapa_atual, grupo_sala, controle_ativo=obter_controle_ativo(), bot=BOT)
             vagalumes.update(dt)
             # As armadilhas causam dano com intervalo de segurança e empurram o jogador para trás.
             if jogador.tempo_imune_armadilha <= 0:
@@ -2974,6 +2554,20 @@ def main():
             for inim in todos_inimigos_sala:
                 inim.update(dt, jogador)
             jogador.atualizar_invocacoes(dt, todos_inimigos_sala)
+
+            # Coleta automática ao encostar em Chaves Rúnicas + sintonização de Relíquias via golpe de espada
+            for chave in grupo_sala.get("chaves", []):
+                if not chave.get("coletada", False):
+                    r_ch = pygame.Rect(int(chave["x"] - 18), int(chave["y"] - 28), 36, 36)
+                    if jogador.rect.colliderect(r_ch):
+                        _coletar_chave(chave, grupo_sala, origem="toque")
+
+            if mapa_idx == 6 and jogador.atacando and jogador.hitbox_ataque:
+                for ri, (rx, ry) in enumerate(cenarios.POS_RUNAS_SALA7):
+                    if ri not in jogador.runas_ativadas:
+                        r_altar = pygame.Rect(int(rx - 28), int(ry - 68), 56, 72)
+                        if jogador.hitbox_ataque.colliderect(r_altar):
+                            _ativar_rel_sala7(ri, grupo_sala)
 
             boss_atual = grupo_sala["boss"]
 
@@ -3108,57 +2702,93 @@ def main():
                     jogador.x = 0.0
 
             if modo_jogo == "MAPA":
+                def _iniciar_encontro(alvo_inim, vantagem="JOGADOR", aviso_extra=None):
+                    nonlocal combate, inimigo_em_luta
+                    inimigo_em_luta = alvo_inim
+                    if alvo_inim.is_boss:
+                        equipe = [alvo_inim]
+                    else:
+                        equipe = [
+                            alvo for alvo in todos_inimigos_sala
+                            if alvo.vivo and not alvo.is_boss
+                            and abs(alvo.x - alvo_inim.x) <= 240
+                            and abs(alvo.y - alvo_inim.y) <= 110
+                        ]
+                        equipe = sorted(equipe, key=lambda alvo: abs(alvo.x - alvo_inim.x))[:3]
+                        if alvo_inim not in equipe:
+                            equipe.insert(0, alvo_inim)
+                    if alvo_inim.is_boss and mapa_idx == 6 and len(getattr(jogador, "runas_ativadas", set())) >= 3:
+                        vantagem_efetiva = "JOGADOR"
+                    else:
+                        vantagem_efetiva = vantagem
+                    combate = CombateExpedition33(
+                        jogador, alvo_inim, vantagem=vantagem_efetiva,
+                        sala_idx=mapa_idx, alvos_disponiveis=equipe, sala_atual=mapa_idx
+                    )
+                    if aviso_extra:
+                        combate.banner_msg = aviso_extra
+                    elif len(equipe) > 1:
+                        tag_mira = ui_medieval.tag_comando("alvos")
+                        pref = "EMBOSCADA!" if vantagem_efetiva == "JOGADOR" else "GRUPO INIMIGO!"
+                        combate.banner_msg = f"{pref} {len(equipe)} INIMIGOS {tag_mira} PARA TROCAR ALVO"
+                    if alvo_inim.is_boss:
+                        txt_b = "ESCUDO QUEBRADO — VOCÊ ATACA PRIMEIRO!" if (mapa_idx == 6 and len(getattr(jogador, "runas_ativadas", set())) >= 3) else "O CHEFE ATACA PRIMEIRO!"
+                        transicao.iniciar("COMBATE", estilo="portao", texto=txt_b)
+                    else:
+                        txt_trans = "O COMBATE COMEÇA" if vantagem_efetiva == "JOGADOR" else "EMBOSCADA!"
+                        transicao.iniciar("COMBATE", estilo="portao", texto=txt_trans)
+
                 for inim in todos_inimigos_sala:
-                    if inim.vivo:
-                        if jogador.atacando and jogador.hitbox_ataque and jogador.hitbox_ataque.colliderect(inim.rect):
-                            if transicao.ativa:
+                    if not inim.vivo:
+                        continue
+
+                    if jogador.atacando_baixo and jogador.hitbox_pogo:
+                        if jogador.hitbox_pogo.colliderect(inim.rect):
+                            jogador.executar_pogo_bounce()
+                            if not transicao.ativa:
+                                if getattr(inim, "vulneravel_contra_ataque", False) and inim.hp > 1:
+                                    dano_pogo = inim.sofrer_contra_ataque(16)
+                                    inim.hp = max(1, inim.hp)
+                                    inim.vivo = True
+                                    adicionar_notificacao(f"Pogo em RECUPERAÇÃO! (-{dano_pogo})", cor=(110, 255, 220))
+                                _iniciar_encontro(inim, vantagem="JOGADOR", aviso_extra="POGO BOUNCE! VANTAGEM DE COMBATE!")
                                 break
-                            inimigo_em_luta = inim
-                            if inim.is_boss:
-                                equipe = [inim]
-                            else:
-                                equipe = [alvo for alvo in todos_inimigos_sala
-                                          if alvo.vivo and not alvo.is_boss
-                                          and abs(alvo.x - inim.x) <= 240
-                                          and abs(alvo.y - inim.y) <= 110]
-                                equipe = sorted(equipe, key=lambda alvo: abs(alvo.x - inim.x))[:3]
-                                if inim not in equipe:
-                                    equipe.insert(0, inim)
-                            combate = CombateExpedition33(jogador, inim, vantagem="JOGADOR", sala_idx=mapa_idx, alvos_disponiveis=equipe, sala_atual=mapa_idx)
-                            if inim.is_boss:
-                                transicao.iniciar("COMBATE", estilo="portao", texto="O CHEFE ATACA PRIMEIRO!")
-                            elif len(equipe) > 1:
-                                tag_mira = ui_medieval.tag_comando("alvos")
-                                combate.banner_msg = f"EMBOSCADA! {len(equipe)} INIMIGOS {tag_mira} PARA TROCAR ALVO"
-                                transicao.iniciar("COMBATE", estilo="portao", texto="O COMBATE COMEÇA")
-                            else:
-                                transicao.iniciar("COMBATE", estilo="portao", texto="O COMBATE COMEÇA")
+                        elif any(jogador.hitbox_pogo.colliderect(hb["rect"]) for hb in getattr(inim, "hitboxes_ataque", []) if hb.get("ignora_esquiva_chao")):
+                            jogador.executar_pogo_bounce()
+                            inim.acertou_jogador_neste_ataque = True
+                            adicionar_notificacao("Pogo Bounce sobre a onda sísmica!", cor=(120, 255, 220))
+
+                    if jogador.atacando and jogador.hitbox_ataque and jogador.hitbox_ataque.colliderect(inim.rect):
+                        if transicao.ativa:
                             break
-                        elif jogador.rect.colliderect(inim.rect):
-                            if transicao.ativa:
-                                break
-                            inimigo_em_luta = inim
-                            # Colidir com um inimigo só agrupa aliados que estejam próximos no mesmo trecho.
-                            if inim.is_boss:
-                                equipe = [inim]
-                            else:
-                                equipe = [alvo for alvo in todos_inimigos_sala
-                                          if alvo.vivo and not alvo.is_boss
-                                          and abs(alvo.x - inim.x) <= 240
-                                          and abs(alvo.y - inim.y) <= 110]
-                                equipe = sorted(equipe, key=lambda alvo: abs(alvo.x - inim.x))[:3]
-                                if inim not in equipe:
-                                    equipe.insert(0, inim)
-                            combate = CombateExpedition33(jogador, inim, vantagem="INIMIGO", sala_idx=mapa_idx, alvos_disponiveis=equipe, sala_atual=mapa_idx)
-                            if inim.is_boss:
-                                transicao.iniciar("COMBATE", estilo="portao", texto="O CHEFE ATACA PRIMEIRO!")
-                            elif len(equipe) > 1:
-                                tag_mira = ui_medieval.tag_comando("alvos")
-                                combate.banner_msg = f"GRUPO INIMIGO! {len(equipe)} ADVERSÁRIOS {tag_mira} PARA TROCAR ALVO"
-                                transicao.iniciar("COMBATE", estilo="portao", texto="EMBOSCADA!")
-                            else:
-                                transicao.iniciar("COMBATE", estilo="portao", texto="EMBOSCADA!")
-                            break
+                        if getattr(inim, "vulneravel_contra_ataque", False) and inim.hp > 1:
+                            dano_p = inim.sofrer_contra_ataque(20)
+                            inim.hp = max(1, min(inim.max_hp, inim.hp))
+                            inim.vivo = True
+                            adicionar_notificacao(f"Contra-ataque em RECUPERAÇÃO! (-{dano_p})", cor=(110, 255, 210))
+                        _iniciar_encontro(inim, vantagem="JOGADOR")
+                        break
+
+                    res_atk = inim.verificar_colisao_ataque(jogador)
+                    if res_atk is not None:
+                        if res_atk.get("atingido"):
+                            camera.tremer(intensidade=6.0, duracao=0.22)
+                            adicionar_notificacao(
+                                f"{inim.nome}: {res_atk.get('motivo', 'GOLPE')} (-{res_atk.get('dano', 0)} HP)",
+                                cor=(255, 110, 95)
+                            )
+                            if jogador.hp <= 0:
+                                jogador.hp = 1
+                                if not transicao.ativa:
+                                    _iniciar_encontro(inim, vantagem="INIMIGO")
+                                    break
+                        elif res_atk.get("contra_aberta"):
+                            inim.vulneravel_contra_ataque = True
+                            adicionar_notificacao(f"{res_atk.get('motivo', 'ESQUIVA')}! JANELA ABERTA!", cor=(120, 245, 255))
+
+                    elif not jogador.esta_invencivel and not transicao.ativa and jogador.obter_hurtbox().colliderect(inim.rect):
+                        _iniciar_encontro(inim, vantagem="INIMIGO")
+                        break
 
         elif modo_jogo == "COMBATE":
             if not BOT.ativo:
@@ -3657,14 +3287,26 @@ def main():
 
             if mapa_idx == 6:
                 desenhar_runas_puzzle(tela_virtual, off_x, jogador, tempo_mundo, camera_offset_y=off_y)
+                camadas_esc = max(0, 3 - len(getattr(jogador, "runas_ativadas", set())))
+                if camadas_esc == 0:
+                    for g in grupo_sala.get("portoes", []):
+                        g["aberto"] = True
                 if boss_atual.vivo:
                     bx_s = int(boss_atual.x + boss_atual.largura // 2 - off_x)
                     by_s = int(boss_atual.y + boss_atual.altura // 2 - off_y)
                     pulso_esc = 0.5 + 0.5 * math.sin(tempo_mundo * 3.0)
-                    r_esc = int(52 + 8 * pulso_esc)
-                    s_aura = pygame.Surface((r_esc * 2, r_esc * 2), pygame.SRCALPHA)
-                    pygame.draw.circle(s_aura, (140, 50, 220, int(40 + 35 * pulso_esc)), (r_esc, r_esc), r_esc)
-                    tela_virtual.blit(s_aura, (bx_s - r_esc, by_s - r_esc))
+                    if camadas_esc > 0:
+                        for c_idx in range(camadas_esc):
+                            r_esc = int(42 + c_idx * 10 + 5 * pulso_esc)
+                            s_aura = pygame.Surface((r_esc * 2 + 4, r_esc * 2 + 4), pygame.SRCALPHA)
+                            pygame.draw.circle(s_aura, (150, 65, 235, int(28 + 20 * pulso_esc)), (r_esc + 2, r_esc + 2), r_esc)
+                            pygame.draw.circle(s_aura, (195, 130, 255, 185), (r_esc + 2, r_esc + 2), r_esc, 2)
+                            tela_virtual.blit(s_aura, (bx_s - r_esc - 2, by_s - r_esc - 2))
+                        lbl_esc = fonte_pequena.render(f"ESCUDO ({camadas_esc}/3)", True, (215, 160, 255))
+                        tela_virtual.blit(lbl_esc, (bx_s - lbl_esc.get_width() // 2, by_s - 66))
+                    else:
+                        lbl_vuln = fonte_pequena.render("SELO QUEBRADO • VULNERÁVEL!", True, (90, 255, 195))
+                        tela_virtual.blit(lbl_vuln, (bx_s - lbl_vuln.get_width() // 2, by_s - 66))
 
             desenhar_prompts_interacao(tela_virtual, grupo_sala, jogador, off_x, off_y, tempo_mundo, fonte_pequena)
             vagalumes.draw(tela_virtual, mapa_atual["visual"]["vagalumes"])

@@ -328,9 +328,15 @@ def desenhar_reacao_defensiva(surface, x, y, w, h, tipo_golpe, fontes):
     ui_procedural.desenhar_divisor_dourado(surface, x + 18, y + 28, w - 36)
 
     s_tipo = str(tipo_golpe).upper()
-    g_pulo = any(k in s_tipo for k in ("PULO", "ONDA", "RASTEIRA", "FENDA", "MIASMA", "INVESTIDA", "TERREMOTO"))
+    g_pulo = any(k in s_tipo for k in (
+        "PULO", "ONDA", "RASTEIRA", "FENDA", "MIASMA", "INVESTIDA", "TERREMOTO",
+        "BOTE", "CLAVA", "SISMICA", "CORRENTES"
+    ))
     g_parry = any(k in s_tipo for k in ("PARRY", "ESMAGAMENTO", "TITANICO", "QUEBRA", "RODOPIO"))
-    g_desvio = any(k in s_tipo for k in ("DESVIO", "VENENO", "ECLIPSE", "RUGIDO", "ARCANO", "GARRAS"))
+    g_desvio = any(k in s_tipo for k in (
+        "DESVIO", "VENENO", "ECLIPSE", "RUGIDO", "ARCANO", "GARRAS",
+        "LANCA", "VAZIO", "GUILHOTINA", "TRIPLICE", "DETONACAO"
+    ))
 
     cor_p = (80, 240, 255) if (g_parry or (not g_pulo and not g_desvio)) else ui_procedural.COR_CINZA_TEXTO
     cor_d = (100, 255, 140) if (g_desvio or (not g_pulo and not g_parry)) else ui_procedural.COR_CINZA_TEXTO

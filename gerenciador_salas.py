@@ -1176,12 +1176,12 @@ class GerenciadorSalas:
             "tipo": "titanico_runico",
             "nome": "Portão Titânico com Fechadura Rúnica",
         }]
-        runas = [(280, chao_y), (455, chao_y), (610, chao_y)]
+        runas = [(235, chao_y), (390, chao_y), (545, chao_y)]
 
         boss = _boss_spec(
             "CHEFE FINAL: BIBLIOTECÁRIO DO VAZIO",
             950, (220, 90, 255), 5, "Boss_Bibliotecario",
-            x=665, y=chao_y - 88, patrulha=70
+            x=700, y=chao_y - 88, patrulha=45
         )
 
         props = {

@@ -36,7 +36,7 @@ LARGURA_JANELA = 800
 ALTURA_JANELA = 500
 NOME_EXECUTAVEL = "Elos_do_Vazio.exe"
 NOME_APLICACAO = "Elos do Vazio"
-VERSAO_APLICACAO = "VERSÃO 1.0 • WINDOWS"
+VERSAO_APLICACAO = "VERSÃO 1.1 • WINDOWS"
 CAMINHO_INSTALACAO_PADRAO = r"C:\Jogos\Elos do Vazio"
 PAYLOAD_ZIP_RELATIVO = os.path.join("payload", "elos_do_vazio_payload.zip")
 
@@ -1031,8 +1031,8 @@ class InstaladorApp:
             surface.blit(s_bv, (cx - s_bv.get_width() // 2, card_y + 116))
 
             linhas = [
-                "Prepare a espada, o parrying e desvende os segredos das ruínas.",
-                "Este assistente instalará a jornada completa em seu computador.",
+                "Prepare a espada, a Esquiva Rasteira e o Salto com Pogo nas ruínas.",
+                "Este assistente instalará a versão mais recente (Solo) no computador.",
                 "Com o jogo instalado, você pode iniciar pelo atalho ou pelo menu.",
                 "A música ambiente foi ligada — fique à vontade para escolher!",
             ]

@@ -741,6 +741,136 @@ class DiretorTrailer:
         self.cena_anterior = None
 
         self.vagalumes = cenarios.Vagalumes(42)
+        self._gravacoes_combate = {}
+
+    def _obter_quadro_combate_turnos(self, chave, tempo_local, sala_idx, duracao_clip, modo_boss_rush=False, usar_boss=False, ataque_steps_baixo=1):
+        """
+        Simula e armazena em cache quadros reais do sistema de combate por turnos
+        (`CombateExpedition33`), garantindo que todas as lutas do trailer exibam
+        menu de turnos, barra de iniciativa, QTE e reações defensivas autênticas.
+        """
+        import pygame
+        import main
+        from combate import CombateExpedition33
+
+        if chave not in self._gravacoes_combate:
+            rng_state = random.getstate()
+            random.seed(1337 + int(sala_idx) * 31 + (7 if usar_boss else 0))
+            try:
+                from progresso import Progresso
+                prog_limpo = Progresso()
+                prog_limpo.nome_heroi = "Viajante"
+                prog_limpo.nivel = 1
+                prog_limpo.xp = 0
+                prog_limpo.pocoes_encontradas = 3
+                prog_limpo.cristais_encontrados = 2
+                prog_limpo.registrar_rank_sala = lambda *a, **kw: None
+                prog_limpo.salvar = lambda *a, **kw: None
+                salas = main.criar_entidades_das_salas(prog_limpo)
+                grupo = salas[sala_idx]
+                sp = self.cenarios.DADOS_MAPAS[sala_idx].get("spawn_heroi", (110, 680))
+                jog = main.JogadorMapa(sp[0], sp[1])
+                jog.progresso_ref = prog_limpo
+                jog.mapa_idx = sala_idx
+                jog.max_hp = 120
+                jog.hp = 120
+
+                if usar_boss:
+                    boss = grupo["boss"]
+                    boss.vivo = True
+                    boss.hp = boss.max_hp
+                    alvos = [boss]
+                else:
+                    alvos = [e for e in grupo["inimigos"][:2]]
+                    for e in alvos:
+                        e.vivo = True
+                        e.hp = e.max_hp
+                    if not alvos:
+                        boss = grupo["boss"]
+                        boss.vivo = True
+                        boss.hp = boss.max_hp
+                        alvos = [boss]
+
+                comb = CombateExpedition33(
+                    jog,
+                    alvos[0],
+                    vantagem="NEUTRO",
+                    sala_idx=sala_idx,
+                    alvos_disponiveis=alvos,
+                    modo_boss_rush=modo_boss_rush,
+                    sala_atual=sala_idx,
+                )
+
+                fps_sim = 30
+                dt_sim = 1.0 / float(fps_sim)
+                total_steps = max(2, int(round(duracao_clip * fps_sim)) + 4)
+                quadros = []
+                surf_c = pygame.Surface((self.cenarios.LARGURA_TELA, self.cenarios.ALTURA_TELA))
+
+                abriu_atk = False
+                escolheu_atk = False
+                confirmou_alvo = False
+                reacao_feita = False
+                espera_menu = 0.0
+
+                for step in range(total_steps):
+                    t_sim = step * dt_sim
+                    if comb.estado == "MENU_JOGADOR":
+                        reacao_feita = False
+                        espera_menu += dt_sim
+                        if comb.menu_categoria == "PRINCIPAL" and not abriu_atk and espera_menu >= 0.40:
+                            comb.handle_keydown(pygame.K_RETURN)
+                            abriu_atk = True
+                        elif comb.menu_categoria == "ATAQUES" and not escolheu_atk and espera_menu >= 0.85:
+                            for _ in range(max(0, int(ataque_steps_baixo))):
+                                comb.handle_keydown(pygame.K_DOWN)
+                            comb.handle_keydown(pygame.K_RETURN)
+                            escolheu_atk = True
+                        elif comb.menu_categoria == "SELECAO_ALVO" and not confirmou_alvo and espera_menu >= 1.25:
+                            comb.handle_keydown(pygame.K_RETURN)
+                            confirmou_alvo = True
+                        elif abriu_atk and escolheu_atk and confirmou_alvo and espera_menu >= 0.55 and comb.menu_categoria == "PRINCIPAL":
+                            # Segundo turno caso o clipe alcance outra rodada
+                            abriu_atk = False
+                            escolheu_atk = False
+                            confirmou_alvo = False
+                            espera_menu = 0.0
+                    elif comb.estado == "QTE_JOGADOR":
+                        espera_menu = 0.0
+                        if comb.qte_timer / max(0.01, comb.qte_duracao) >= 0.80:
+                            comb.handle_keydown(pygame.K_z)
+                    elif comb.estado == "TURNO_INIMIGO":
+                        espera_menu = 0.0
+                        restante = comb.tempo_impacto - comb.inimigo_timer
+                        tipo = comb.tipo_golpe_atual()
+                        if not reacao_feita and restante <= 0.12:
+                            if tipo in (
+                                "RASTEIRA", "ONDA_CHOQUE", "INVESTIDA", "TERREMOTO",
+                                "BOTE_FENDIDO", "CLAVA_SISMICA", "FURIA_CORRENTES", "FURIA_ELOS_CORRENTES",
+                            ):
+                                comb.handle_keydown(pygame.K_SPACE)
+                            elif tipo in (
+                                "VENENO", "RUGIDO", "GOLPE_ARCANO", "GARRAS",
+                                "LANCA_DO_VAZIO", "GUILHOTINA_TRIPLICE", "FURIA_EXPLOSAO", "FURIA_ELOS_DETONACAO",
+                            ):
+                                comb.handle_keydown(pygame.K_c)
+                            else:
+                                comb.handle_keydown(pygame.K_x)
+                            reacao_feita = True
+                    else:
+                        reacao_feita = False
+
+                    comb.update(dt_sim)
+                    comb.draw(surf_c)
+                    quadros.append(surf_c.copy())
+
+                self._gravacoes_combate[chave] = (fps_sim, quadros)
+            finally:
+                random.setstate(rng_state)
+
+        fps_sim, quadros = self._gravacoes_combate[chave]
+        idx = max(0, min(len(quadros) - 1, int(round(max(0.0, tempo_local) * fps_sim))))
+        self.surf_mundo.blit(quadros[idx], (0, 0))
 
     @staticmethod
     def _criar_vinheta_1080():
@@ -970,175 +1100,55 @@ class DiretorTrailer:
         elif t < 16.0:
             self.cena_anterior = "CARD2"
             self._cartao_texto_runico(
-                "DOMINE O AÇO. ROMPA OS ELOS.",
-                "Sete salas forjadas em sangue e cantaria",
+                "COMBATE TÁTICO POR TURNOS",
+                "Escolha suas habilidades, acerte o QTE e domine o Parry",
                 prog=(t - 14.0) / 2.0,
             )
             fade_preto = int(255 * max(max(0.0, 1.0 - (t - 14.0) / 0.28), max(0.0, (t - 15.7) / 0.3)))
 
         # ----------------------------------------------------------------------
-        # ATO 3A: COMBATE NAS CATACUMBAS — COMBO DE 3 GOLPES + ESQUIVA (16.0s -> 19.6s, Sala 5)
-        # ----------------------------------------------------------------------
-        elif t < 19.6:
-            if self.cena_anterior != "ATO3A":
-                self.cena_anterior = "ATO3A"
-                self.particulas.limpar_mundo()
-            tl = t - 16.0
-            y_solo = 740.0
-            cam_x, cam_y = 1480.0, 385.0
-            inim_x = 1975.0 + max(0.0, (tl - 0.6) * 28.0)
-
-            # Coreografia: Avança -> 3 Cortes com faíscas -> Esquiva rápida por baixo
-            if tl < 0.42:
-                hx = 1785.0 + tl * 320.0
-                self.anim_p1.tocar("walk", loop=True)
-                self.anim_cripta.tocar("idle", loop=True)
-            elif tl < 1.85:
-                hx = 1920.0 + (tl - 0.42) * 18.0
-                golpe = int((tl - 0.42) / 0.48) + 1
-                if self._once(f"ato3a_hit_{golpe}"):
-                    self.anim_p1.tocar(["attack", "attack2", "attack3"][min(2, golpe - 1)], loop=False, duracao=0.45, forcar=True)
-                    self.anim_cripta.tocar("hurt", loop=False, duracao=0.35, forcar=True)
-                    self.particulas.emitir_arco(hx + 34, y_solo - 32, dir_x=1, cor=(253, 230, 138) if golpe < 3 else (56, 189, 248))
-                    self.particulas.emitir_faiscas(inim_x + 12, y_solo - 32, n=16, vel=280.0)
-                    self.shake_restante, self.shake_forca = 0.14, 5.0
-            elif tl < 2.28:
-                hx = 1945.0
-                if self._once("ato3a_inim_sw"):
-                    self.anim_cripta.tocar("attack", loop=False, duracao=0.40, forcar=True)
-                    self.particulas.emitir_arco(inim_x - 10, y_solo - 34, dir_x=-1, cor=(248, 113, 113), raio=62)
-            else:
-                # Esquiva veloz passando para a direita por baixo do ataque
-                u = min(1.0, (tl - 2.28) / 0.72)
-                hx = 1945.0 + u * 215.0
-                if self._once("ato3a_dodge"):
-                    self.anim_p1.tocar("dodge", loop=False, duracao=0.55, forcar=True)
-                if u < 0.85 and int(tl * 30) % 2 == 0:
-                    self.particulas.emitir_fantasma(hx, y_solo - 50, 34, 50)
-
-            self._desenhar_sala_base(4, cam_x, cam_y, t)
-            self._render_actor(self.anim_cripta, self.surf_mundo, pygame.Rect(int(inim_x), int(y_solo - 64), 44, 64), cam_x, cam_y, espelhar=True, cor_fb=(185, 55, 75), atacando=(1.9 < tl < 2.35))
-            self._render_actor(self.anim_p1, self.surf_mundo, pygame.Rect(int(hx), int(y_solo - 56), 36, 56), cam_x, cam_y, cor_fb=(100, 145, 225), atacando=(0.42 <= tl < 1.85), eter=(tl >= 2.28))
-            self.particulas.desenhar_fx_mundo(self.surf_mundo, cam_x, cam_y)
-            sx = int(random.uniform(-self.shake_forca, self.shake_forca)) if self.shake_restante > 0 else 0
-            sy = int(random.uniform(-self.shake_forca, self.shake_forca)) if self.shake_restante > 0 else 0
-            self.surf_mundo.scroll(sx, sy)
-            self._blitar_gameplay_em_1080(zoom=1.15, foco_x=0.52, foco_y=0.58)
-            self.particulas.desenhar_poeira_1080(self.surf_1080, t)
-            fade_preto = int(255 * max(max(0.0, 1.0 - tl / 0.25), max(0.0, (tl - 3.3) / 0.3)))
-
-        # ----------------------------------------------------------------------
-        # ATO 3B: PARRY DE PRECISÃO 2.5D + HITSTOP 4 FRAMES + CONTRA-ATAQUE (19.6s -> 23.4s)
+        # ATO 3A + 3B: COMBATE POR TURNOS 2.5D NAS CATACUMBAS (16.0s -> 23.4s, Sala 5)
+        # Turno do Jogador (Menu -> Alvo -> QTE) + Turno Inimigo (Parry / Esquiva + Contra-Ataque)
         # ----------------------------------------------------------------------
         elif t < 23.4:
-            if self.cena_anterior != "ATO3B":
-                self.cena_anterior = "ATO3B"
+            if self.cena_anterior != "ATO3_TURNOS":
+                self.cena_anterior = "ATO3_TURNOS"
                 self.particulas.limpar_mundo()
-            tl = t - 19.6
-            self.arena_25d.tempo = t
-            self.cam_25d.atualizar(dt_world)
-
-            # Inimigo avança em Z=35 e golpeia em tl=1.45s -> PARRY com 4 frames de hitstop!
-            if tl < 1.45:
-                self.cam_25d.focar_qte_defensivo(-90.0, -210.0)
-                ex_3d = 120.0 - min(1.0, tl / 1.15) * 200.0
-                ez_3d = 90.0 - min(1.0, tl / 1.15) * 45.0
-                hx_3d, hz_3d = -210.0, 55.0
-                if tl > 0.7:
-                    if self._once("ato3b_windup"):
-                        self.anim_duelista.tocar("attack_parry", loop=False, duracao=0.75, forcar=True)
-                else:
-                    self.anim_duelista.tocar("walk", loop=True)
-                if tl > 1.25:
-                    if self._once("ato3b_guarda"):
-                        self.anim_p1.tocar("block", loop=False, duracao=0.35, forcar=True)
-                else:
-                    self.anim_p1.tocar("idle", loop=True)
-            elif tl < 2.15:
-                # Momento exato do Parry Perfeito + Hitstop de 4 frames + Contra-ataque
-                if self._once("ato3b_parry"):
-                    self.anim_p1.tocar("counter", loop=False, duracao=0.60, forcar=True)
-                    self.anim_duelista.tocar("hurt", loop=False, duracao=0.50, forcar=True)
-                    self.hitstop_restante = 4
-                    self.flash_cor = (56, 189, 248)
-                    self.flash_alpha = 185.0
-                    self.shake_restante, self.shake_forca = 0.28, 12.0
-                    self.cam_25d.aplicar_tremor(10.0, 0.28)
-                    self.particulas.emitir_onda(435, 315, cor=(56, 189, 248), raio_max=190, dur=0.45)
-                    self.particulas.emitir_faiscas(435, 315, n=36, cores=((56, 189, 248), (224, 242, 254), (253, 230, 138)), vel=390.0)
-                self.cam_25d.definir_pose(x=-40.0, y=-20.0, zoom=1.34, tilt=-4.0)
-                ex_3d, ez_3d = -80.0, 45.0
-                hx_3d, hz_3d = -205.0, 55.0
-            else:
-                # Contra-ataque devastador arremessa o oponente para trás rumo às grades!
-                u = min(1.0, (tl - 2.15) / 0.85)
-                if self._once("ato3b_contra"):
-                    self.anim_p1.tocar("attack3", loop=False, duracao=0.65, forcar=True)
-                    self.anim_duelista.tocar("hurt", loop=False, duracao=0.75, forcar=True)
-                    self.particulas.emitir_arco(470, 305, dir_x=1, cor=(56, 189, 248), raio=82, dur=0.25)
-                    self.particulas.emitir_faiscas(510, 300, n=28, cores=((253, 230, 138), (56, 189, 248)), vel=340.0)
-                    self.shake_restante, self.shake_forca = 0.22, 9.0
-                self.cam_25d.definir_pose(x=60.0, y=-12.0, zoom=1.22, tilt=2.0)
-                hx_3d, hz_3d = -140.0, 55.0
-                ex_3d = -80.0 + u * 310.0
-                ez_3d = 45.0 + u * 110.0
-
-            self.arena_25d.desenhar_completo(self.surf_mundo, self.cam_25d, [])
-            px_h, py_h, esc_h = self.cam_25d.projetar(hx_3d, self.arena_25d.y_chao, hz_3d)
-            px_e, py_e, esc_e = self.cam_25d.projetar(ex_3d, self.arena_25d.y_chao, ez_3d)
-            r_h = pygame.Rect(int(px_h - 32 * esc_h), int(py_h - 86 * esc_h), int(64 * esc_h), int(86 * esc_h))
-            r_e = pygame.Rect(int(px_e - 42 * esc_e), int(py_e - 102 * esc_e), int(84 * esc_e), int(102 * esc_e))
-            self._render_actor(self.anim_duelista, self.surf_mundo, r_e, 0, 0, espelhar=True, escala_extra=1.25, cor_fb=(175, 55, 75), atacando=(tl < 1.5))
-            self._render_actor(self.anim_p1, self.surf_mundo, r_h, 0, 0, espelhar=False, escala_extra=1.25, cor_fb=(100, 145, 225), atacando=(tl >= 1.45), eter=True)
-            self.particulas.desenhar_fx_mundo(self.surf_mundo, 0, 0)
-
-            if 1.45 <= tl < 2.45:
-                lbl = self.fontes["fx_mundo"].render("PARRY PERFEITO!", True, (56, 189, 248))
-                self.surf_mundo.blit(lbl, (LARGURA_VIDEO // 4 - lbl.get_width() // 2, 118))
-
+            tl = t - 16.0
+            self._obter_quadro_combate_turnos(
+                "catacumbas_turnos",
+                tl,
+                sala_idx=4,
+                duracao_clip=7.4,
+                modo_boss_rush=False,
+                usar_boss=False,
+                ataque_steps_baixo=1,
+            )
             self._blitar_gameplay_em_1080(zoom=1.0)
-            # Subtítulo rúnico elegante em sobreposição discreta
-            tag_sub = self.fontes["mini"].render("APARE  •  CONTRA-ATAQUE  •  SOBREVIVA", True, (253, 230, 138))
-            self.surf_1080.blit(tag_sub, (LARGURA_VIDEO // 2 - tag_sub.get_width() // 2, 74))
-            self.particulas.desenhar_poeira_1080(self.surf_1080, t)
-            fade_preto = int(255 * max(max(0.0, 1.0 - tl / 0.22), max(0.0, (tl - 3.5) / 0.3)))
+            self.particulas.desenhar_poeira_1080(self.surf_1080, t, fator_eter=0.65)
+            fade_preto = int(255 * max(max(0.0, 1.0 - tl / 0.25), max(0.0, (tl - 7.1) / 0.3)))
 
         # ----------------------------------------------------------------------
-        # ATO 3C: MODO BOSS RUSH — CONFRONTO CONTRA REI DA LUA SANGRENTA (23.4s -> 26.5s, Sala 6)
+        # ATO 3C: MODO BOSS RUSH POR TURNOS — REI DA LUA SANGRENTA (23.4s -> 26.5s, Sala 6)
         # ----------------------------------------------------------------------
         elif t < 26.5:
             if self.cena_anterior != "ATO3C":
                 self.cena_anterior = "ATO3C"
                 self.particulas.limpar_mundo()
             tl = t - 23.4
-            y_cripta = 800.0
-            cam_x, cam_y = 1620.0, 445.0
-            p1x = 1810.0 + tl * 72.0
-            e1x = 2055.0 - min(0.8, tl * 0.25) * 40.0
-            e2x = 2135.0 - min(0.8, tl * 0.25) * 45.0
-
-            self.anim_p1.tocar("attack2" if int(tl * 3.0) % 2 == 0 else "attack", loop=True)
-            self.anim_cripta.tocar("hurt" if tl > 0.7 else "walk", loop=True)
-            self.anim_boss_rush.tocar("attack" if tl > 1.2 else "idle", loop=True)
-
-            if self._once("ato3c_slash1") and tl > 0.65:
-                self.particulas.emitir_arco(p1x + 42, y_cripta - 32, dir_x=1, cor=(56, 189, 248))
-                self.particulas.emitir_faiscas(e1x, y_cripta - 30, n=22, vel=290.0)
-            if self._once("ato3c_slash2") and tl > 1.45:
-                self.particulas.emitir_arco(e2x - 18, y_cripta - 44, dir_x=-1, cor=(220, 38, 38), raio=76)
-                self.particulas.emitir_faiscas(p1x + 36, y_cripta - 30, n=24, vel=310.0)
-                self.shake_restante, self.shake_forca = 0.16, 6.0
-
-            self._desenhar_sala_base(5, cam_x, cam_y, t)
-            self._render_actor(self.anim_cripta, self.surf_mundo, pygame.Rect(int(e1x), int(y_cripta - 62), 42, 62), cam_x, cam_y, espelhar=True, cor_fb=(185, 55, 75))
-            self._render_actor(self.anim_boss_rush, self.surf_mundo, pygame.Rect(int(e2x), int(y_cripta - 84), 58, 84), cam_x, cam_y, espelhar=True, escala_extra=1.25, cor_fb=(190, 35, 65), atacando=(tl > 1.2))
-            self._render_actor(self.anim_p1, self.surf_mundo, pygame.Rect(int(p1x), int(y_cripta - 56), 36, 56), cam_x, cam_y, cor_fb=(100, 145, 225), atacando=True, eter=True)
-
-            self.particulas.desenhar_fx_mundo(self.surf_mundo, cam_x, cam_y)
-            self._blitar_gameplay_em_1080(zoom=1.12, foco_x=0.5, foco_y=0.55)
-            tag_rush = self.fontes["mini"].render("BOSS RUSH  •  DESAFIO DOS 7 CHEFES", True, (253, 230, 138))
-            self.surf_1080.blit(tag_rush, (LARGURA_VIDEO // 2 - tag_rush.get_width() // 2, 74))
-            self.particulas.desenhar_poeira_1080(self.surf_1080, t)
+            self._obter_quadro_combate_turnos(
+                "boss_rush_sala6",
+                tl + 0.35,
+                sala_idx=5,
+                duracao_clip=3.8,
+                modo_boss_rush=True,
+                usar_boss=True,
+                ataque_steps_baixo=1,
+            )
+            self._blitar_gameplay_em_1080(zoom=1.0)
+            tag_rush = self.fontes["mini"].render("BOSS RUSH  •  COMBATE POR TURNOS CONTRA OS 7 CHEFES", True, (253, 230, 138))
+            self.surf_1080.blit(tag_rush, (LARGURA_VIDEO // 2 - tag_rush.get_width() // 2, 52))
+            self.particulas.desenhar_poeira_1080(self.surf_1080, t, fator_eter=0.75)
             fade_preto = int(255 * max(max(0.0, 1.0 - tl / 0.25), max(0.0, (tl - 2.8) / 0.3)))
 
         # ----------------------------------------------------------------------
@@ -1154,68 +1164,61 @@ class DiretorTrailer:
             fade_preto = int(255 * max(max(0.0, 1.0 - (t - 26.5) / 0.25), max(0.0, (t - 28.2) / 0.3)))
 
         # ----------------------------------------------------------------------
-        # ATO 4: CONFRONTO FINAL — PORTÃO DA SALA 7 E ATAQUE AÉREO DE CLÍMAX (28.5s -> 37.5s)
+        # ATO 4: ENTRADA NO SANTUÁRIO (SALA 7) + COMBATE POR TURNOS CONTRA O CHEFE FINAL (28.5s -> 37.5s)
         # ----------------------------------------------------------------------
         elif t < 37.5:
             if self.cena_anterior != "ATO4":
                 self.cena_anterior = "ATO4"
                 self.particulas.limpar_mundo()
             tl = t - 28.5
-            chao_y = self.cenarios.DADOS_MAPAS[6]["chao"].top
-            portao_aberto = tl >= 1.75
-            if 0.6 <= tl < 2.2:
-                self.shake_restante, self.shake_forca = 0.08, 4.5
-            if self._once("ato4_portao") and portao_aberto:
-                self.particulas.emitir_onda(836, chao_y - 104, cor=(56, 189, 248), raio_max=160, dur=0.55)
-                self.particulas.emitir_faiscas(836, chao_y - 40, n=32, cores=((56, 189, 248), (253, 230, 138)), vel=240.0)
-                self.shake_restante, self.shake_forca = 0.25, 8.0
 
-            boss_x = 640.0
-            # Fase A (0..3.6s): Abertura épica do portão | Fase B (3.6..9.0s): Avanço e Ataque Aéreo de Éter
-            if tl < 3.6:
-                hx, hy = 135.0 + tl * 38.0, chao_y - 56
-                self.anim_p1.tocar("walk" if tl > 1.8 else "idle", loop=True)
+            if tl < 3.4:
+                # Exploração pura na Sala 7: abertura do portão rúnico e avanço até o confronto
+                chao_y = self.cenarios.DADOS_MAPAS[6]["chao"].top
+                portao_aberto = tl >= 1.55
+                if 0.5 <= tl < 1.9:
+                    self.shake_restante, self.shake_forca = 0.08, 4.5
+                if self._once("ato4_portao") and portao_aberto:
+                    self.particulas.emitir_onda(836, chao_y - 104, cor=(56, 189, 248), raio_max=160, dur=0.55)
+                    self.particulas.emitir_faiscas(836, chao_y - 40, n=32, cores=((56, 189, 248), (253, 230, 138)), vel=240.0)
+                    self.shake_restante, self.shake_forca = 0.25, 8.0
+
+                boss_x = 640.0
+                hx, hy = 135.0 + max(0.0, tl - 1.2) * 72.0, chao_y - 56
+                self.anim_p1.tocar("walk" if tl > 1.2 else "idle", loop=True)
                 self.anim_boss.tocar("idle", loop=True)
-                zoom_cam, foco_x, foco_y = 1.0 + 0.05 * (tl / 3.6), 0.72, 0.55
-            elif tl < 6.4:
-                hx = 270.0 + (tl - 3.6) * 65.0
-                hy = chao_y - 56
-                self.anim_p1.tocar("walk", loop=True)
-                self.anim_boss.tocar("attack" if tl > 5.4 else "idle", loop=(tl <= 5.4))
-                zoom_cam, foco_x, foco_y = 1.06 + (tl - 3.6) * 0.03, 0.55, 0.62
+                zoom_cam, foco_x, foco_y = 1.0 + 0.06 * (tl / 3.4), 0.65, 0.58
+
+                self._desenhar_sala_base(6, 0.0, 0.0, t, portao_aberto=portao_aberto)
+                self._render_actor(self.anim_boss, self.surf_mundo, pygame.Rect(int(boss_x), int(chao_y - 96), 72, 96), 0.0, 0.0, espelhar=True, escala_extra=1.35, cor_fb=(155, 45, 185), eter=True)
+                self._render_actor(self.anim_p1, self.surf_mundo, pygame.Rect(int(hx), int(hy), 36, 56), 0.0, 0.0, cor_fb=(100, 145, 225))
+                self.particulas.desenhar_fx_mundo(self.surf_mundo, 0.0, 0.0)
+                self._blitar_gameplay_em_1080(zoom=zoom_cam, foco_x=foco_x, foco_y=foco_y)
+                self.particulas.desenhar_poeira_1080(self.surf_1080, t, fator_eter=1.1)
+                if tl < 0.35:
+                    fade_preto = int(255 * (1.0 - tl / 0.35))
+                elif tl > 3.10:
+                    fade_preto = int(255 * ((tl - 3.10) / 0.30))
             else:
-                u = min(1.0, (tl - 6.4) / 2.2)
-                hx = 452.0 + u * 165.0
-                hy = (chao_y - 56) - math.sin(u * math.pi * 0.85) * 145.0
-                if u > 0.45:
-                    if self._once("ato4_atk_aereo"):
-                        self.anim_p1.tocar("attack_aereo", loop=False, duracao=1.3, forcar=True)
-                else:
-                    if self._once("ato4_jump_boss"):
-                        self.anim_p1.tocar("jump", loop=False, duracao=0.9, forcar=True)
-                        self.anim_boss.tocar("attack_parry", loop=False, duracao=1.8, forcar=True)
-                if int(tl * 40) % 2 == 0 and u < 0.96:
-                    self.particulas.emitir_faiscas(hx + 18, hy + 28, n=4, cores=((56, 189, 248), (224, 242, 254)), vel=110.0)
-                if self._once("ato4_climax") and tl >= 8.55:
-                    self.particulas.emitir_arco(hx + 30, hy + 20, dir_x=1, cor=(56, 189, 248), raio=95, dur=0.35)
-                    self.particulas.emitir_onda(boss_x + 20, chao_y - 52, cor=(224, 242, 254), raio_max=220, dur=0.55)
-                    self.shake_restante, self.shake_forca = 0.45, 14.0
-                zoom_cam, foco_x, foco_y = 1.14 + u * 0.16, 0.62, 0.62
-
-            self._desenhar_sala_base(6, 0.0, 0.0, t, portao_aberto=portao_aberto)
-            self._render_actor(self.anim_boss, self.surf_mundo, pygame.Rect(int(boss_x), int(chao_y - 96), 72, 96), 0.0, 0.0, espelhar=True, escala_extra=1.35, cor_fb=(155, 45, 185), atacando=(tl > 5.4), eter=True)
-            self._render_actor(self.anim_p1, self.surf_mundo, pygame.Rect(int(hx), int(hy), 36, 56), 0.0, 0.0, cor_fb=(100, 145, 225), atacando=(tl >= 6.4), eter=(tl >= 6.4))
-            self.particulas.desenhar_fx_mundo(self.surf_mundo, 0.0, 0.0)
-            self._blitar_gameplay_em_1080(zoom=zoom_cam, foco_x=foco_x, foco_y=foco_y)
-            self.particulas.desenhar_poeira_1080(self.surf_1080, t, fator_eter=1.3)
-
-            # Flash branco crescente no impacto exato do golpe de clímax (37.1s -> 37.5s)
-            if tl >= 8.55:
-                a_branco = int(255 * min(1.0, (tl - 8.55) / 0.40))
-                self.flash_cor = (240, 249, 255)
-                self.flash_alpha = float(a_branco)
-            elif tl < 0.35:
-                fade_preto = int(255 * (1.0 - tl / 0.35))
+                # Transição para o Combate por Turnos 2.5D real contra o Bibliotecário do Vazio
+                tl_comb = tl - 3.4
+                self._obter_quadro_combate_turnos(
+                    "boss_final_sala7",
+                    tl_comb + 0.40,
+                    sala_idx=6,
+                    duracao_clip=6.2,
+                    modo_boss_rush=False,
+                    usar_boss=True,
+                    ataque_steps_baixo=1,
+                )
+                self._blitar_gameplay_em_1080(zoom=1.0)
+                self.particulas.desenhar_poeira_1080(self.surf_1080, t, fator_eter=0.8)
+                if tl_comb < 0.30:
+                    fade_preto = int(255 * (1.0 - tl_comb / 0.30))
+                if tl >= 8.55:
+                    a_branco = int(255 * min(1.0, (tl - 8.55) / 0.40))
+                    self.flash_cor = (240, 249, 255)
+                    self.flash_alpha = float(a_branco)
 
         # ----------------------------------------------------------------------
         # ATO 5: ENCERRAMENTO MONUMENTAL & CHAMADA PARA AÇÃO (37.5s -> 45.0s)

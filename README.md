@@ -19,7 +19,7 @@
 
   <p>
     <a href="https://github.com/GoKaio/elos-do-vazio/releases/latest/download/Instalador_Elos_do_Vazio.exe">
-      <img src="https://img.shields.io/badge/%E2%AC%87%EF%B8%8F_BAIXAR_INSTALADOR_WINDOWS-v1.0_(.exe)-D97706?style=for-the-badge&logo=windows&logoColor=F8FAFC&labelColor=0B0F19" alt="Baixar Instalador Windows (.exe)" />
+      <img src="https://img.shields.io/badge/%E2%AC%87%EF%B8%8F_BAIXAR_INSTALADOR_WINDOWS-v1.1_(.exe)-D97706?style=for-the-badge&logo=windows&logoColor=F8FAFC&labelColor=0B0F19" alt="Baixar Instalador Windows (.exe)" />
     </a>
     &nbsp;
     <a href="https://github.com/GoKaio/elos-do-vazio/releases">
@@ -45,7 +45,7 @@
   <img src="assets/trailer_preview.gif" alt="Prévia de Combate, Esquiva e Parry 2.5D — Elos do Vazio" width="660" />
 
   <br/>
-  <sub><i>Prévia de gameplay em arena 2.5D: combate tático nas catacumbas, esquiva e Parry Perfeito com hitstop.</i></sub>
+  <sub><i>Prévia real de combate por turnos 2.5D: seleção de habilidades, QTE ofensivo e reações defensivas com contra-ataque.</i></sub>
 
 </div>
 

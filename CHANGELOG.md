@@ -2,6 +2,14 @@
 
 Todas as alterações notáveis deste projeto são registradas neste arquivo.
 
+## [1.1.0] — 2026-11-11
+
+### Alterado / Adicionado
+- **Combate Single-Player Reformulado ([player.py](player.py), [inimigos.py](inimigos.py), [combate.py](combate.py), [main.py](main.py)):** sistema estritamente 1 Jogador com **Esquiva Rasteira / Roll Dash** (`14` I-Frames e hurtbox pela metade) e **Salto de Reação / Impulso Aéreo com Pogo**.
+- **5 Arquétipos de Inimigos com Ataques Exclusivos ([inimigos.py](inimigos.py)):** máquina de estados `PREPARANDO -> EXECUTANDO -> RECUPERACAO` e padrões dedicados (`BOTE_FENDIDO`, `CLAVA_SISMICA`, `LANCA_DO_VAZIO`, `GUILHOTINA_TRIPLICE`, `FURIA_ELOS_RUNICOS`).
+- **Chaves Rúnicas e Puzzle da Sala 7 Funcionais ([main.py](main.py), [gerenciador_salas.py](gerenciador_salas.py), [combate.py](combate.py)):** coleta automática/E de chaves com bolsa persistente (`Chaves`), enfraquecimento de chefes (`-15%` HP) caso o portão já esteja aberto e quebra em 3 estágios do Escudo Arcano do Bibliotecário do Vazio via Relíquias da Sala 7 (dano direto, Éter, vulnerabilidade e turno preventivo).
+- **Empacotamento e Instalador ([build_exe.py](build_exe.py), [build_instalador.py](build_instalador.py), [instalador_gui.py](instalador_gui.py)):** inclusão de `player` e `inimigos` nos `--hidden-import`, recompilação garantida do payload atualizado e versão atualizada para **v1.1**.
+
 ## [1.0.0] — 2026-11-10
 
 ### Adicionado

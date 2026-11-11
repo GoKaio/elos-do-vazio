@@ -2609,6 +2609,15 @@ def desenhar_prompts_interacao(surface, grupo_sala, jogador, camera_x, camera_y,
             d = math.hypot(cj_x - b["x"], cj_y - b["y"])
             if d < 75:
                 candidatos.append((d, b["x"], b["y"] - 34, "[E] Abrir Baú"))
+    for gate in grupo_sala.get("portoes", []):
+        if not gate.get("aberto", False):
+            g_rect = gate["rect"]
+            if abs(cj_x - g_rect.centerx) < 68 and abs(cj_y - g_rect.centery) < g_rect.height // 2 + 40:
+                if getattr(jogador, "chaves_bolsa", 0) > 0:
+                    msg_g = f"[E] Usar Chave da Bolsa ({jogador.chaves_bolsa})"
+                else:
+                    msg_g = f"[E] {gate.get('nome', 'Portão Trancado')}"
+                candidatos.append((20.0, g_rect.centerx, g_rect.centery - 46, msg_g))
     if not candidatos:
         return
     candidatos.sort(key=lambda item: item[0])
@@ -2628,13 +2637,13 @@ def obter_objetivo_sala(mapa_idx, mapa_atual, grupo_sala, jogador=None):
 
     if mapa_idx == 6:
         runas = len(getattr(jogador, "runas_ativadas", set())) if jogador else 0
-        if not aberto and runas < 3:
-            return (f"Glifos ({runas}/3)", False)
-        return ("Derrote o Bibliotecário" if boss_vivo else "Atravesse o Portal", True)
+        if runas < 3:
+            return (f"Glifos ({runas}/3) — Quebre o Escudo!", False)
+        return ("Escudo Quebrado! Derrote o Chefe" if boss_vivo else "Atravesse o Portal!", True)
     if not aberto:
         if gate and gate.get("tipo") == "ponte_levadica":
             return ("Ative a Ponte Levadiça", False)
-        return ("Destranque o Portão", False)
+        return ("Destranque o Portão (Alavanca ou Chave)", False)
     return ("Derrote o Guardião" if boss_vivo else "Atravesse o Portal", True)
 
 

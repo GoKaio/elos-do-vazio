@@ -108,7 +108,7 @@ def _coletar_datas_jogo():
             if os.path.isfile(item) and not item.endswith(".pyc"):
                 datas.append((item, "tools"))
 
-    for arq in ("elos_do_vazio_ui_positions.json", "LEIA-ME.txt", "COMO_JOGAR.txt", "icon.ico"):
+    for arq in ("elos_do_vazio_ui_positions.json", "LEIA-ME.txt", "COMO_JOGAR.txt", "GUIA_PERSONAGENS_E_INIMIGOS.txt", "icon.ico"):
         arq_abs = os.path.join(RAIZ, arq)
         if os.path.isfile(arq_abs):
             datas.append((arq_abs, "."))
@@ -154,6 +154,8 @@ def compilar_jogo(onefile=False):
         "--hidden-import", "ui_configurador",
         "--hidden-import", "combate",
         "--hidden-import", "combate_ui",
+        "--hidden-import", "player",
+        "--hidden-import", "inimigos",
         "--hidden-import", "cenarios",
         "--hidden-import", "gerenciador_salas",
         "--hidden-import", "cenario_combate_25d",

@@ -26,8 +26,8 @@ os.chdir(RAIZ)
 MP4_PADRAO = os.path.join(RAIZ, "trailer_elos_do_vazio.mp4")
 GIF_PADRAO = os.path.join(RAIZ, "assets", "trailer_preview.gif")
 LARGURA_GIF = 640
-INICIO_COMBATE_PADRAO = 17.5
-DURACAO_TRECHO_PADRAO = 6.0
+INICIO_COMBATE_PADRAO = 16.0
+DURACAO_TRECHO_PADRAO = 6.6
 FPS_GIF_PADRAO = 18
 LIMITE_MB_PADRAO = 8.5
 

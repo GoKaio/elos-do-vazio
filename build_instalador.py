@@ -53,7 +53,8 @@ def extrair_assets_legacy_dungeon_se_presente():
 
 def main():
     parser = argparse.ArgumentParser(description="Build completo e instalador Windows — Elos do Vazio")
-    parser.add_argument("--all", action="store_true", help="Compila o jogo principal e em seguida gera o instalador.")
+    parser.add_argument("--all", action="store_true", help="Compila o jogo principal e em seguida gera o instalador (padrão).")
+    parser.add_argument("--reuse-dist", action="store_true", help="Reutiliza dist/Elos_do_Vazio existente ao empacotar o instalador.")
     parser.add_argument("--only-installer", action="store_true", help="Gera apenas o instalador usando o dist/Elos_do_Vazio atual.")
     parser.add_argument("--onefile", action="store_true", help="Compila o jogo em modo --onefile antes de empacotar.")
     args = parser.parse_args()
@@ -62,7 +63,7 @@ def main():
     build_exe.garantir_icone_jogo()
 
     exe_jogo = os.path.join(build_exe.DIST_JOGO, "Elos_do_Vazio.exe")
-    deve_compilar_jogo = args.all or (not args.only_installer and not os.path.isfile(exe_jogo))
+    deve_compilar_jogo = args.all or (not args.only_installer and (not args.reuse_dist or not os.path.isfile(exe_jogo)))
 
     if deve_compilar_jogo:
         build_exe.compilar_jogo(onefile=args.onefile)
