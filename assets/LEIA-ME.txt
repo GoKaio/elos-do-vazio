@@ -1,0 +1,16 @@
+COLOQUE AQUI OS SPRITES DO "TINY RPG CHARACTER ASSET PACK" (Zerie)
+
+1. Baixe em: https://zerie.itch.io/tiny-rpg-character-asset-pack
+   - A versao gratuita ("Free Soldier&Orc") ja tem Soldier e Orc.
+   - A versao completa tem 20 personagens (Elite Orc, Orc rider, Skeleton, Greatsword Skeleton...).
+2. Extraia o .zip DENTRO desta pasta (assets). Pode manter as subpastas do pack.
+3. Rode o jogo. No terminal aparece "[sprites] Personagens encontrados: ..."
+   confirmando o que foi carregado.
+
+Quais personagens cada sala usa: config.py (sprite_jogador, sprite_inimigo_por_sala,
+sprite_boss_por_sala, sprite_fallback). Os nomes sao os mesmos das pastas do pack.
+Se um personagem nao existir, o jogo usa o proximo da lista de fallback; se nenhum
+existir, desenha os retangulos de antes.
+
+Obs.: a licenca do pack nao permite redistribuir os sprites - nao publique esta pasta
+junto do codigo-fonte em repositorio publico.

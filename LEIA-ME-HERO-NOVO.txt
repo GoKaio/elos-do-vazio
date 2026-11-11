@@ -1,0 +1,60 @@
+========================================
+ELOS DO VAZIO - SPRITES NOVAS DO PERSONAGEM PRINCIPAL
+========================================
+
+Foi adicionada a pasta assets/Hero/Hero/ com sprites novas baseadas no Soldier,
+mas com paleta diferente (capacete/armadura dourada + roupa azul).
+
+Isso deixa o personagem principal (Guerreiro) visualmente distinto dos inimigos
+que ainda usam o Soldier em alguns encontros.
+
+Arquivos alterados:
+- config.py  →  "sprite_jogador": "Hero"
+- main.py    →  classe GUERREIRO agora usa "Hero"
+
+O Soldier original continua na pasta assets/Soldier caso queira voltar.
+
+Como jogar:
+  python -m pip install pygame
+  python main.py
+
+----------------------------------------
+CORREÇÃO DE BUG + MELHORIAS DE BATALHA
+----------------------------------------
+
+BUG CORRIGIDO:
+- Ao trocar de alvo (A/D) e voltar para um inimigo já ferido, a vida
+  dele NÃO recupera mais. O max_hp agora é guardado em cada inimigo
+  e a barra mostra o valor real.
+
+MELHORIAS DE INTERFACE E CENÁRIO DE BATALHA:
+- Arena com vinheta escura e plataforma central mais definida
+- Barras de vida dos inimigos com número (HP atual / máximo)
+- Cores da barra mudam (verde → amarelo → vermelho)
+- Seta indicando o alvo selecionado
+- Painel do jogador maior e mais legível
+- Inimigos do grupo no fundo com barras de vida corretas
+- Banner de equipe mais limpo
+
+----------------------------------------
+INTERFACE ESTILO MEDIEVAL
+----------------------------------------
+- Fontes: Cinzel, Cardo, EB Garamond, IM Fell (títulos e textos)
+- Painéis de madeira/pergaminho com bordas douradas e cantos ornamentados
+- Barras de vida com moldura dourada (verde / ouro / sangue)
+- Menu, HUD do mapa, combate, morte e vitória no mesmo tema
+- Cores: ouro, pergaminho, madeira, ferro, sangue
+
+----------------------------------------
+TRANSICOES MEDIEVAIS + PIXEL UI PACK
+----------------------------------------
+Transicoes entre telas:
+  - pergaminho : cortina de pergaminho (mapa / salas)
+  - portao     : portoes de ferro (entrada em combate)
+  - selo       : iris dourada (morte / vitoria)
+  - fade       : fade sepia (menu)
+
+Pixel UI pack 3 integrado em assets/ui/:
+  - Barras de vida pixel (vermelho/amarelo/verde)
+  - Botoes e paineis 9-slice
+  - ui_assets.py carrega e desenha os elementos

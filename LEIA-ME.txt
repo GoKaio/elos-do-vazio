@@ -1,0 +1,57 @@
+================================================================================
+                    ELOS DO VAZIO — GUIA DO JOGO E DA EXPOSIÇÃO
+================================================================================
+
+Desenvolvido para exposição pública e interativa.
+Versão: 1.0.0
+Tecnologia: Python / Pygame-CE (Compilado para Windows x64)
+
+--------------------------------------------------------------------------------
+1. COMO JOGAR & CONTROLES
+--------------------------------------------------------------------------------
+
+O jogo possui suporte completo e alternância automática entre:
+• TECLADO & MOUSE
+• CONTROLE (Xbox, PlayStation ou Genérico USB)
+
+NO MAPA (EXPLORAÇÃO):
+  • Mover: [A] / [D]  ou  Setas Esquerda / Direita  (ou Analógico / D-Pad)
+  • Pular: [ESPAÇO]  ou  [W]  ou  Seta Cima  (ou Botão A no controle)
+  • Interagir / Entrar em Portas: [E]  ou  [ENTER]  (ou Botão X no controle)
+  • Pausa / Menu: [ESC]  (ou Botão START / OPTION)
+
+NO COMBATE RPG (SISTEMA DE TURNOS DINÂMICOS):
+  • Navegar Ações: Setas  ou  [W] / [S] / [A] / [D]  (ou Analógico / D-Pad)
+  • Confirmar Ação: [ENTER]  ou  [ESPAÇO]  (ou Botão A)
+  • Voltar / Cancelar: [ESC]  (ou Botão B)
+  • Trocar Alvo Inimigo: [A] / [D]  ou  [Q] / [E]  (ou Gatilhos LB / RB)
+
+REAÇÕES EM TEMPO REAL DURANTE O TURNO DO INIMIGO:
+  • PULO PERFEITO (contra golpes terrestres / rasteiros): [ESPAÇO]  (ou Botão A)
+  • APARAR / PARRY (contra ataques verticais e projéteis): [F] ou [K]  (ou Botão X)
+  • DESVIO / DODGE (contra estocadas e investidas): [SHIFT] ou [J]  (ou Botão B)
+
+--------------------------------------------------------------------------------
+2. RECURSOS ESPECIAIS PARA A EXPOSIÇÃO
+--------------------------------------------------------------------------------
+
+• MODO BOT / VITRINE AUTOMÁTICA:
+  - No menu inicial, clique no botão "MODO BOT" ou pressione [F2] (ou Botão Y no controle).
+  - O robô autônomo assume o controle total do guerreiro, esquivando de armadilhas,
+    explorando salas, escolhendo ataques e executando esquivas cinematográficas.
+  - Se ninguém interagir por 75 segundos, a vitrine autônoma pode assumir para manter
+    o estande sempre atraente e em movimento.
+
+• TELA CHEIA:
+  - Pressione [F11] a qualquer momento para alternar entre Janela e Tela Cheia.
+
+• MODOS DE JOGO:
+  1. MODO CAMPANHA: Percorra as 7 salas temáticas, enfrente perigos ambientais e derrote o Bibliotecário.
+  2. MODO BOSS RUSH: Enfrente diretamente os 7 Chefes lendários em sequência com vidas contínuas.
+
+• DOIS RANKINGS SEPARADOS:
+  - No menu de Ranking, use [TAB] ou as setas [← / →] para ver os recordistas do Modo Campanha e do Boss Rush.
+
+================================================================================
+                    Bom jogo e excelente apresentação!
+================================================================================

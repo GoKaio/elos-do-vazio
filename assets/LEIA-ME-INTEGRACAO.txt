@@ -1,0 +1,7 @@
+PERSONAGEM INTEGRADO
+
+O jogo foi preparado para carregar o Soldier como personagem do jogador e o Orc como inimigo.
+Os sprites ficam na pasta assets/ e o jogo os carrega automaticamente usando sprites.py.
+Os chefes que não existem no pacote gratuito usam o Orc como alternativa.
+
+Execute main.py como antes. Requer Python e pygame instalados.

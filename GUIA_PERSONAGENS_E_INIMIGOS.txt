@@ -1,0 +1,280 @@
+================================================================================
+ELOS DO VAZIO - GUIA COMPLETO DE DESIGN E ANIMAÇÃO FRAME A FRAME
+(Guia para Pixel Lab, Sprite Lab, Aseprite e Motores 2.5D)
+================================================================================
+
+ESTRUTURA DE NOMES DE ARQUIVOS SUPORTADA PELO JOGO:
+Os spritesheets devem ser salvos dentro de "assets/" como imagens PNG transparentes
+em tiras horizontais com quadros quadrados (largura total = tamanho_quadro * num_frames).
+
+Padrão de nomenclatura:
+  <Personagem>-<Animacao>.png  (ou <Personagem>_<Animacao>.png)
+
+Exemplos:
+  Hero-Idle.png
+  Hero-Walk.png
+  Hero-Attack01.png
+  Hero-Attack02.png
+  Hero-Magic.png
+  Hero-Block.png
+  Hero-Counter.png
+  Hero-Jump.png
+  Hero-Dodge.png
+  Hero-Hurt.png
+  Hero-Death.png
+  Gargula-Attack_Pulo.png
+  Gargula-Attack_Aereo.png
+  Cultista-Attack_Parry.png
+  Cultista-Attack_Combo.png
+  Espectro-Attack_Desvio.png
+  Espectro-Attack_Pulo.png
+  GuardiaoVazio-Attack_Pulo.png
+  GuardiaoVazio-Attack_Parry.png
+  GuardiaoVazio-Attack_Aereo.png
+  GuardiaoVazio-Attack_Desvio.png
+
+================================================================================
+1. O PERSONAGEM PRINCIPAL (HERÓI / VIAJANTE DO ÉTER)
+================================================================================
+Canvas por quadro: 48x48 pixels
+Conceito: Guerreiro errante com armadura de ferro leve, capa desgastada e lâmina rúnica.
+
+Paleta de Cores (Códigos HEX):
+  - Cinza-Aço da Armadura:   #475569, #64748B, #94A3B8
+  - Azul-Noite das Túnicas:  #0F172A, #1E293B, #334155
+  - Prata da Lâmina:         #CBD5E1, #E2E8F0, #F8FAFC
+  - Ciano/Éter Luminoso:     #0284C7, #38BDF8, #BAE6FD
+  - Couro das Botas e Cinto: #451A03, #78350F, #92400E
+
+ANIMAÇÕES (QUADRO A QUADRO):
+
+• Hero-Idle.png (4 quadros | 6 FPS)
+  - Frame 1: Postura em base relaxada, lâmina apontada a 45 graus para o chão.
+  - Frame 2: Respiração: peitoral e ombros sobem 1 px; ponta da capa oscila.
+  - Frame 3: Ápice da respiração: cabeça erguida, olhar focado.
+  - Frame 4: Respiração desce 1 px retornando ao repouso do Frame 1.
+
+• Hero-Walk.png (6 quadros | 10 FPS)
+  - Frame 1: Perna direita avança; braço esquerdo balança para frente.
+  - Frame 2: Pé direito toca o solo; tronco inclina 1 px à frente.
+  - Frame 3: Perna esquerda cruza no centro; capa ondula para trás.
+  - Frame 4: Perna esquerda avança; braço direito balança.
+  - Frame 5: Pé esquerdo toca o solo com firmeza.
+  - Frame 6: Transição e recuo da capa completando o ciclo de caminhada.
+
+• Hero-Hurt.png (3 quadros | 10 FPS)
+  - Frame 1: Recuo brusco do tronco para trás, cabeça inclinada para baixo.
+  - Frame 2: Flash branco de impacto em 50% dos pixels com faíscas azuis.
+  - Frame 3: Recuperação da postura e travamento dos pés na cantaria.
+
+• Hero-Death.png (5 quadros | 8 FPS)
+  - Frame 1: Golpe fatal: lâmina solta da mão, corpo enrijece.
+  - Frame 2: Queda de joelhos com braços caídos.
+  - Frame 3: Tronco tomba para a direita, espada colide no chão.
+  - Frame 4: Corpo deitado de lado nas lajes com poeira subindo.
+  - Frame 5: Repouso final imóvel; capa cobre parcialmente o herói.
+
+• Hero-Block.png / Hero-Counter.png (4 quadros | 12 FPS)
+  - Frame 1: Lâmina erguida em guarda vertical rígida em frente ao peito.
+  - Frame 2: PARRY PERFEITO: Impacto estelar com faísca circular azul-celeste (12 px).
+  - Frame 3: CONTRA-ATAQUE: Corte em arco diagonal ascendente com trilha ciana.
+  - Frame 4: Recolhimento veloz em guarda de prontidão.
+
+• Hero-Jump.png (5 quadros | 10 FPS)
+  - Frame 1: Agachamento de impulso (joelhos flexionados 3 px).
+  - Frame 2: Elevação vertical veloz; pés saem do chão e capa aponta para baixo.
+  - Frame 3: PONTO MAIS ALTO (Onda rasteira passa por baixo); pernas encolhidas.
+  - Frame 4: Descida vertical esticando pernas em direção ao chão.
+  - Frame 5: Aterrissagem com amortecimento nos joelhos nas lajes de pedra.
+
+• Hero-Dodge.png (5 quadros | 12 FPS)
+  - Frame 1: Inclinação lateral de ombros iniciando o mergulho/rolamento.
+  - Frame 2: Rolamento rente ao solo com rastro translúcido de éter (i-frames).
+  - Frame 3: Meio-rolamento rente ao chão esquivando de ataques aéreos e veneno.
+  - Frame 4: Elevação em passada baixa esticando a perna de apoio.
+  - Frame 5: Postura ereta plantada em guarda.
+
+• Hero-Attack01.png (4 quadros | 12 FPS) - "Assalto Rápido (+1 AP)"
+  - Frame 1: Recuo curto da lâmina preparando corte rápido.
+  - Frame 2: Avanço veloz desferindo corte horizontal no tronco do alvo.
+  - Frame 3: Extensão máxima da espada com arco branco brilhante.
+  - Frame 4: Recolhimento da lâmina retornando ao Idle.
+
+• Hero-Attack02.png (5 quadros | 12 FPS) - "Corte Cósmico (Fogo/DoT)"
+  - Frame 1: Lâmina acende com runas laranjas e douradas.
+  - Frame 2: Primeira estocada perfurante frontal com feixe de fogo estelar.
+  - Frame 3: Giro de punho invertendo a pegada da espada.
+  - Frame 4: Segundo corte cruzado em X com labaredas cósmicas.
+  - Frame 5: Faíscas crepitantes e retorno à postura.
+
+• Hero-Magic.png (5 quadros | 10 FPS) - "Orbe do Vazio (Fenda Temporal)"
+  - Frame 1: Ergue a mão livre ao céu acumulando partículas azuis.
+  - Frame 2: Um orbe rúnico de energia cósmica condensa na palma da mão.
+  - Frame 3: Arremesso do orbe em linha reta em direção ao inimigo.
+  - Frame 4: Detonação do orbe no ar abrindo fenda espacial translúcida.
+  - Frame 5: Dissipação das runas e recolhimento dos braços.
+
+================================================================================
+2. NOVO INIMIGO A: GÁRGULA DE PEDRA (BRUTAMONTES / PESADO)
+================================================================================
+GÁRGULA DE PEDRA (BRUTAMONTES / PESADO)
+Canvas por quadro: 64x64 pixels
+Conceito: Monólito alado de cantaria gótica antiga com olhos de âmbar brilhante.
+
+Paleta de Cores (Códigos HEX):
+  - Cinza-Granito da Pedra:  #334155, #475569, #64748B
+  - Musgo e Vinhas Antigas:  #14532D, #166534, #365314
+  - Chumbo das Asas Rachadas:#0F172A, #1E293B
+  - Âmbar Brilhante (Olhos): #D97706, #F59E0B, #FDE68A
+
+ATAQUES TELEGRAFADOS & ANIMAÇÕES:
+
+• Gargula-Attack_Pulo.png (6 quadros | 10 FPS)
+  TEGRAFIA: ONDA DE CHOQUE NO SOLO -> DEFESA: PULO [ESPAÇO]
+  - Frame 1: Ergue ambos os punhos de pedra acima da cabeça; olhos brilham âmbar.
+  - Frame 2: Carga máxima: pedras soltas do chão começam a flutuar ao redor.
+  - Frame 3: Queda pesada em aceleração com os punhos descendo.
+  - Frame 4: IMPACTO NO CHÃO: Crateras e fraturas se abrem nas lajes.
+  - Frame 5: JANELA DO PULO [ESPAÇO]: Lâmina de choque e poeira varre o solo.
+  - Frame 6: Recuperação lenta retirando os punhos das fraturas.
+
+• Gargula-Attack_Aereo.png (6 quadros | 10 FPS)
+  TELEGRAFIA: MERGULHO ESMAGADOR -> DEFESA: ESQUIVA [C] OU PARRY [X] (Pulo Falha!)
+  - Frame 1: Agachamento profundo concentrando energia nas pernas.
+  - Frame 2: Batida violenta de asas alçando voo em direção ao topo da tela.
+  - Frame 3: FORA DA TELA: Uma sombra circular cresce aos pés do Herói.
+  - Frame 4: Mergulho vertical rasgante com as garras de pedra abertas.
+  - Frame 5: JANELA DE ESQUIVA [C] OU PARRY [X]: Impacto sísmico devastador.
+  - Frame 6: Ergue-se sacudindo fragmentos de rocha e reassume a guarda.
+
+• Gargula-Idle.png (4 quadros | 6 FPS): Postura pesada agachada, asas entreabertas.
+• Gargula-Walk.png (6 quadros | 8 FPS): Passadas pesadas fazendo o chão tremer.
+• Gargula-Hurt.png (3 quadros | 10 FPS): Lascas de pedra voam com rachadura branca.
+• Gargula-Death.png (5 quadros | 8 FPS): Corpo racha por completo e desmorona em pedras.
+
+================================================================================
+3. NOVO INIMIGO B: CULTISTA VORAZ (ASSASSINO / ÁGIL)
+================================================================================
+
+CULTISTA VORAZ (ASSASSINO / ÁGIL)
+Canvas por quadro: 48x48 pixels
+Conceito: Silhueta magra encapuzada em mantos fétidos com adagas duplas de ferro negro.
+
+Paleta de Cores (Códigos HEX):
+  - Mantos Preto-Cinzento:   #18181B, #27272A, #3F3F46
+  - Tecido Vinho / Sangue:   #4C0519, #881337, #BE123C
+  - Ferro Negro das Adagas:  #09090B, #1C1917, #78350F
+  - Ouro de Telegrafia:      #EAB308, #FDE047, #FEF08A
+
+ATAQUES TELEGRAFADOS & ANIMAÇÕES:
+
+• Cultista-Attack_Parry.png (5 quadros | 12 FPS)
+  TELEGRAFIA: ESTOCADA RÁPIDA -> DEFESA: PARRY [X] OU DESVIO [C]
+  - Frame 1: Puxa o tronco e a adaga para trás em arco tenso.
+  - Frame 2: BRILHO DE TELEGRAFIA: Flash amarelo-ouro na ponta da lâmina.
+  - Frame 3: JANELA DE PARRY [X] OU DESVIO [C]: Impulso frontal perfurante.
+  - Frame 4: Extensão máxima da adaga com linha de corte no ar.
+  - Frame 5: Recolhimento ágil para a postura base.
+
+• Cultista-Attack_Combo.png (6 quadros | 12 FPS)
+  TELEGRAFIA: GOLPE DUPLO RÍTMICO -> DEFESA: PARRY [X] -> PARRY [X]
+  - Frame 1: Giro rápido de tronco puxando a adaga esquerda.
+  - Frame 2: 1º PARRY [X]: Corte diagonal descendente da primeira adaga.
+  - Frame 3: Inversão fluida de peso transferindo o golpe para a adaga direita.
+  - Frame 4: 2º PARRY [X]: Corte ascendente veloz da segunda adaga.
+  - Frame 5: Estocada dupla final com as duas adagas cruzadas em tesoura.
+  - Frame 6: Salto ágil para trás recuperando a distância.
+
+• Cultista-Idle.png (4 quadros | 8 FPS): Silhueta esguia oscilando mantos, adagas prontas.
+• Cultista-Walk.png (6 quadros | 12 FPS): Passos rasteiros e furtivos rente ao solo.
+• Cultista-Hurt.png (3 quadros | 10 FPS): Recuo com mantos voando e respingo de sangue.
+• Cultista-Death.png (5 quadros | 8 FPS): Cai de frente, adagas caem e mantos esvaziam.
+
+================================================================================
+4. NOVO INIMIGO C: ESPECTRO DO PÂNTANO (MÁGICO / PESTILENTO)
+================================================================================
+ESPECTRO DO PÂNTANO (MÁGICO / PESTILENTO)
+Canvas por quadro: 48x48 pixels
+Conceito: Aparição esguia flutuante em túnicas etéreas rasgadas emanando miasma tóxico.
+
+Paleta de Cores (Códigos HEX):
+  - Roxo-Espectral das Túnicas: #3B0764, #581C87, #7E22CE, #C084FC
+  - Verde-Ácido Fluorescente:   #15803D, #22C55E, #4ADE80, #86EFAC
+  - Lilás das Névoas:           #A855F7, #D8B4FE, #FAF5FF
+  - Olhos de Fogo-Fátuo:        #A3E635, #BEF264
+
+ATAQUES TELEGRAFADOS & ANIMAÇÕES:
+
+• Espectro-Attack_Desvio.png (6 quadros | 10 FPS)
+  TELEGRAFIA: NUVEM TÓXICA IMPARÁVEL -> DEFESA: ESQUIVA LATERAL OBRIGATÓRIA [C]
+  (Atenção: Bloqueio com [X] e Pulo com [ESPAÇO] falham obrigatoriamente!)
+  - Frame 1: Mãos esguias recolhem ao peito condensando miasma verde.
+  - Frame 2: AVISO NA TELA: "GOLPE IMPARÁVEL" com olhos em verde fluorescente.
+  - Frame 3: Expande os braços expelindo um cone denso de gás venenoso.
+  - Frame 4: JANELA DE ESQUIVA [C]: A névoa toma toda a área horizontal.
+  - Frame 5: Fumaça começa a se dispersar em micropartículas tóxicas.
+  - Frame 6: Túnicas voltam a ondular na flutuação normal.
+
+• Espectro-Attack_Pulo.png (5 quadros | 10 FPS)
+  TELEGRAFIA: LÂMINA RASTEIRA DE MIASMA -> DEFESA: PULO [ESPAÇO]
+  - Frame 1: Garra cadavérica desce até tocar a superfície do chão.
+  - Frame 2: Brilho roxo crepitante corre pelas juntas de argamassa da pedra.
+  - Frame 3: JANELA DE PULO [ESPAÇO]: Onda de fogo-fátuo rasteiro avança no solo.
+  - Frame 4: Expansão horizontal da labareda roxa rente às lajes.
+  - Frame 5: Dissipação da chama na extremidade da arena.
+
+• Espectro-Idle.png (4 quadros | 6 FPS): Flutuação contínua subindo e descendo 2 px.
+• Espectro-Walk.png (6 quadros | 8 FPS): Deslizamento etéreo no ar com túnicas ondulando.
+• Espectro-Hurt.png (3 quadros | 10 FPS): Ectoplasma se dispersa e reconvoca rápido.
+• Espectro-Death.png (5 quadros | 8 FPS): Túnicas desabam vazias enquanto a alma evapora.
+
+================================================================================
+5. NOVO INIMIGO D: GUARDIÃO DO VAZIO (TITÃ / CHEFE DA DEMO)
+================================================================================
+GUARDIÃO DO VAZIO (TITÃ / CHEFE DA DEMO)
+Canvas por quadro: 80x80 pixels
+Conceito: Colosso de armadura rúnica negra, espada colossal com fendas de fogo estelar.
+
+Paleta de Cores (Códigos HEX):
+  - Ônix Profundo da Armadura: #09090B, #18181B, #27272A
+  - Azul-Celeste das Runas:    #0891B2, #06B6D4, #67E8F9
+  - Fogo Solar / Fenda:        #C2410C, #EA580C, #F97316, #FDE047
+  - Prata Polida de Detalhes:  #94A3B8, #CBD5E1, #FFFFFF
+
+ROTAÇÃO DE ATAQUES (UTILIZA OS 4 ARQUÉTIPOS DE COMBATE):
+
+• GuardiaoVazio-Attack_Pulo.png (6 quadros | 10 FPS) - "Fenda Titânica"
+  - Crava a espada colossal com as duas mãos no solo.
+  - Uma fissura cósmica de fogo estelar explode pelo chão (Janela de Pulo [ESPAÇO]).
+
+• GuardiaoVazio-Attack_Parry.png (5 quadros | 10 FPS) - "Investida Colossal"
+  - Puxa a espada colossal na horizontal à altura do pescoço; runas acendem em ciano.
+  - Dispara estocada sônica perfurante em linha reta (Janela de Parry Perfeito [X]).
+
+• GuardiaoVazio-Attack_Aereo.png (6 quadros | 10 FPS) - "Julgamento Astral"
+  - Salto colossal para fora da tela com propulsão de asas de sombra.
+  - Sombra colossal na arena e queda esmagadora (Janela de Esquiva [C] ou Parry [X]).
+
+• GuardiaoVazio-Attack_Desvio.png (6 quadros | 10 FPS) - "Explosão do Eclipse"
+  - GOLPE IMPARÁVEL: Ergue o punho esquerdo conjurando um eclipse em chamas negras.
+  - Onda expansiva circular de choque térmico (Janela de Esquiva [C] obrigatória).
+
+• GuardiaoVazio-Idle.png (4 quadros | 6 FPS): Postura de titã, espada apoiada, runas pulsando.
+• GuardiaoVazio-Walk.png (6 quadros | 8 FPS): Marcha colossal ritmada com faíscas nas lajes.
+• GuardiaoVazio-Hurt.png (3 quadros | 10 FPS): Recuo rígido de armadura com quebra de runas.
+• GuardiaoVazio-Death.png (5 quadros | 8 FPS): Queda de joelhos, armadura racha e luz vaza.
+
+================================================================================
+DICAS DE PRODUÇÃO NO PIXEL LAB E SPRITE LAB:
+1. Resolução dos Quadros:
+   - Herói, Cultista e Espectro: Grade quadrada de 48x48 px.
+   - Gárgula de Pedra: Grade quadrada de 64x64 px.
+   - Guardião do Vazio: Grade quadrada de 80x80 px.
+2. Ponto de Pivô / Ancoragem dos Pés:
+   - Mantenha os pés das personagens sempre a 2 ou 3 pixels de distância da borda
+     inferior do quadro para que as sombras projetadas pelo motor 2.5D fiquem perfeitas.
+3. Exportação:
+   - Salve no formato PNG com canal alfa (RGBA) transparente sem borda branca.
+   - Não use antialiasing na exportação; mantenha a nitidez pura de pixel art.
+================================================================================
+

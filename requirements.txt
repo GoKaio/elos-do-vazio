@@ -1,0 +1,3 @@
+# Dependências do jogo Elos do Vazio
+pygame-ce>=2.5.0
+

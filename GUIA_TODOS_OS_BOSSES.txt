@@ -1,0 +1,263 @@
+================================================================================
+ELOS DO VAZIO - GUIA COMPLETO DE DESIGN DE TODOS OS 7 BOSSES DO JOGO
+(Prompts e Especificações Prontos para Copiar e Colar no Pixel Lab / Sprite Lab)
+================================================================================
+
+ESTRUTURA DE NOMES DE ARQUIVOS PARA OS BOSSES:
+Cada boss gerado deve ser salvo em "assets/<NomeDoBoss>/" como tiras horizontais PNG:
+  <NomeBoss>-Idle.png          (4 quadros)
+  <NomeBoss>-Walk.png          (6 quadros)
+  <NomeBoss>-Hurt.png          (3 quadros)
+  <NomeBoss>-Death.png         (5 quadros)
+  <NomeBoss>-Attack_Pulo.png   (6 quadros - Onda no Solo, defesa Pulo [ESPAÇO])
+  <NomeBoss>-Attack_Parry.png  (5 quadros - Golpe Direto/Estocada, defesa Parry [X])
+  <NomeBoss>-Attack_Aereo.png  (6 quadros - Mergulho/Esmagamento, defesa Esquiva [C] ou Parry [X])
+  <NomeBoss>-Attack_Desvio.png (6 quadros - Golpe Imparável, defesa Esquiva [C] obrigatória)
+
+================================================================================
+BOSS 1: LANTERNEIRO PÁLIDO (SALA 1 - CEMITÉRIO DA LUA PÁLIDA)
+================================================================================
+Prompt para Pixel Lab:
+--------------------------------------------------------------------------------
+LANTERNEIRO PÁLIDO (CHEFE DA SALA 1 - CEMITÉRIO GÓTICO)
+Canvas por quadro: 64x64 pixels. View: low top-down (2.5D RPG).
+Conceito: Guardião esguio encapuzado em mantos de couro fúnebre cinza-escuro, portando
+uma foice enferrujada e um grande lampião de ferro que queima com fogo-fátuo azul-celeste.
+
+Paleta de Cores (HEX):
+  - Mantos Fúnebres:          #1E293B, #334155, #475569
+  - Ferro Envelhecido/Ferrugem:#292524, #57534E, #78350F
+  - Fogo-Fátuo da Lanterna:   #0284C7, #38BDF8, #E0F2FE
+  - Olhos Cadavéricos:        #67E8F9, #FFFFFF
+
+Ataques e Telegrafia de QTE:
+• Attack_Pulo (Onda Rasteira de Almas):
+  Bate a base do lampião contra o chão gerando uma onda de espíritos rasteiros.
+  Defesa: Pulo [ESPAÇO].
+• Attack_Parry (Corte Rápido de Foice):
+  Lâmina da foice brilha com faísca azul telegrafada e corta na horizontal.
+  Defesa: Parry [X] ou Desvio [C].
+• Attack_Desvio (Nuvem de Névoa Fúnebre - IMPARÁVEL):
+  Abre o lampião liberando névoa espectral em cone cobrindo toda a arena.
+  Defesa: Esquiva [C] obrigatória (Bloqueio falha).
+
+Storyboard Quadro a Quadro:
+- Idle (4f): Flutuação e balanço sutil do lampião com chamas azuis pulsando.
+- Walk (6f): Passos rasteiros e lentos arrastando a lâmina da foice.
+- Hurt (3f): Lampião chacoalha com faíscas ectoplasmáticas.
+- Death (5f): O lampião se estilhaça no solo, a alma ascende e as vestes tombam.
+--------------------------------------------------------------------------------
+
+
+================================================================================
+BOSS 2: BRUXA DO BOSQUE TORDO (SALA 2 - FLORESTA SOMBRIA)
+================================================================================
+Prompt para Pixel Lab:
+--------------------------------------------------------------------------------
+BRUXA DO BOSQUE TORDO (CHEFE DA SALA 2 - FLORESTA CORROMPIDA)
+Canvas por quadro: 64x64 pixels. View: low top-down (2.5D RPG).
+Conceito: Entidade xamânica antiga fundida a raízes de carvalho podre, túnicas de líquen
+e musgo escuro, chifres de madeira retorcida e cajado com crânio de corvo que emana veneno verde.
+
+Paleta de Cores (HEX):
+  - Casca e Raízes de Madeira:#271C19, #451A03, #78350F
+  - Musgo e Líquens:          #14532D, #166534, #4ADE80
+  - Veneno Ácido Fluorescente:#22C55E, #86EFAC, #DCFCE7
+  - Mantos Esfarrapados:      #1C1917, #292524, #3F3F46
+
+Ataques e Telegrafia de QTE:
+• Attack_Pulo (Raízes Espinhosas Rasteiras):
+  Cava o cajado no solo fazendo raízes com espinhos rasgarem a terra em linha reta.
+  Defesa: Pulo [ESPAÇO].
+• Attack_Desvio (Miasma Venenoso Corrosivo - IMPARÁVEL):
+  Cospe um turbilhão verde-ácido tóxico que contamina o ar por completo.
+  Defesa: Esquiva Lateral [C].
+• Attack_Parry (Golpe de Galho Cortante):
+  Seu braço de madeira se estica como chicote perfurante telegrafado com folhagens.
+  Defesa: Parry [X].
+
+Storyboard Quadro a Quadro:
+- Idle (4f): Raízes serpenteiam suavemente aos seus pés; crânio do cajado emite vapores.
+- Walk (6f): Deslocamento rasteiro semelhante a uma aranha com múltiplos galhos.
+- Hurt (3f): Lascas de casca voam com sangue vegetal verde espirrando.
+- Death (5f): Raízes secam e apodrecem, corpo de madeira se desfaz em cinzas foliares.
+--------------------------------------------------------------------------------
+
+
+================================================================================
+BOSS 3: EXECUTOR DE FERRO NEGRO (SALA 3 - PORTÕES DE FERRO)
+================================================================================
+Prompt para Pixel Lab:
+--------------------------------------------------------------------------------
+EXECUTOR DE FERRO NEGRO (CHEFE DA SALA 3 - FORTALEZA DE FERRO)
+Canvas por quadro: 64x64 pixels. View: low top-down (2.5D RPG).
+Conceito: Guerreiro imponente de armadura de placas de ferro maciço, elmo fechado
+com fenda incandescente, portando um machado carrasco de duas lâminas com marcas de sangue.
+
+Paleta de Cores (HEX):
+  - Ferro Fundido e Chumbo:   #09090B, #18181B, #3F3F46
+  - Sangue Seco nas Lâminas:  #450A0A, #7F1D1D, #991B1B
+  - Brasas na Fenda do Elmo:  #EA580C, #F97316, #FDE047
+  - Rebites e Aço:            #71717A, #A1A1AA, #E4E4E7
+
+Ataques e Telegrafia de QTE:
+• Attack_Pulo (Machadada Sísmica no Solo):
+  Desce o machado de cima a baixo com as duas mãos, liberando uma onda de choque de ferro e estilhaços.
+  Defesa: Pulo [ESPAÇO].
+• Attack_Aereo (Salto de Arremetida Pesada):
+  Salta alto caindo com o peso de sua armadura esmagando a área do Herói.
+  Defesa: Esquiva [C] ou Parry [X] (Pulo falha!).
+• Attack_Parry (Golpe de Ombro e Corte Circular):
+  Investida frontal com o escudo/ombro seguida de machadada rápida.
+  Defesa: Parry [X].
+
+Storyboard Quadro a Quadro:
+- Idle (4f): Respiração pesada soltando fumaça cinzenta pelo elmo, machado no ombro.
+- Walk (6f): Marcha lenta e metálica com passos que ecoam nas lajes.
+- Hurt (3f): Fagulhas de aço ricocheteiam na couraça com som de impacto metálico.
+- Death (5f): Machado cai das mãos estalando no chão; colosso cai de joelhos e tomba.
+--------------------------------------------------------------------------------
+
+
+================================================================================
+BOSS 4: NECROMANTE DO MAUSOLÉU (SALA 4 - CRIPTA DOS ANCESTRAIS)
+================================================================================
+Prompt para Pixel Lab:
+--------------------------------------------------------------------------------
+NECROMANTE DO MAUSOLÉU (CHEFE DA SALA 4 - CRIPTA ESQUECIDA)
+Canvas por quadro: 64x64 pixels. View: low top-down (2.5D RPG).
+Conceito: Feiticeiro cadavérico em túnicas de seda fúnebre roxa e dourada desgastada,
+máscara de porcelana quebrada e cajado com crânio humano dourado envolto em chamas violetas.
+
+Paleta de Cores (HEX):
+  - Seda Roxa Fúnebre:        #2E1065, #581C87, #7E22CE
+  - Ouro Velho e Adornos:     #78350F, #B45309, #F59E0B
+  - Chamas Violetas Místicas: #9333EA, #C084FC, #F3E8FF
+  - Ossos e Máscara:          #D6D3D1, #E7E5E4, #FAF8F5
+
+Ataques e Telegrafia de QTE:
+• Attack_Pulo (Lança de Ossos Rasteira):
+  Gera espinhos de ossos afiados que brotam sucessivamente do chão em direção ao jogador.
+  Defesa: Pulo [ESPAÇO].
+• Attack_Desvio (Julgamento Espiritual do Mausoléu - IMPARÁVEL):
+  Chama uma cascata de crânios explosivos que saturam o chão com fogo violeta.
+  Defesa: Esquiva Lateral [C].
+• Attack_Combo (Disparos Duplos de Éter Carmesim):
+  Dispara duas esferas arcanas em rápida sucessão rítmica.
+  Defesa: Parry [X] -> Parry [X].
+
+Storyboard Quadro a Quadro:
+- Idle (4f): Flutuação mística suave, runas arcanas violetas orbitam o cajado.
+- Walk (6f): Levitação linear no ar com as pontas das túnicas ondulando.
+- Hurt (3f): A máscara de porcelana estala com luz roxa vazando pelas fendas.
+- Death (5f): O cajado explode em brasas, ossos se desprendem e o necromante vira pó.
+--------------------------------------------------------------------------------
+
+
+================================================================================
+BOSS 5: COLOSSO DA ESTÁTUA SOMBRIA (SALA 5 - TEMPLO EM RUÍNAS)
+================================================================================
+Prompt para Pixel Lab:
+--------------------------------------------------------------------------------
+COLOSSO DA ESTÁTUA SOMBRIA (CHEFE DA SALA 5 - SANTUÁRIO ABANDONADO)
+Canvas por quadro: 80x80 pixels. View: low top-down (2.5D RPG).
+Conceito: Gigante de pedra obsidiana e mármore negro ancestral, runas de éter azul
+incrustadas nas juntas, peitoral com fenda brilhante e punhos do tamanho de pilares.
+
+Paleta de Cores (HEX):
+  - Obsidiana / Mármore Negro:#030712, #111827, #1F2937
+  - Runas de Éter Cósmico:    #0284C7, #0EA5E9, #38BDF8
+  - Granito Rachado:          #374151, #4B5563, #6B7280
+  - Faíscas de Pedra:         #BAE6FD, #FFFFFF
+
+Ataques e Telegrafia de QTE:
+• Attack_Pulo (Martelada Cataclísmica):
+  Ergue os dois braços maciços e esmaga o solo com força máxima, criando fratura contínua.
+  Defesa: Pulo [ESPAÇO].
+• Attack_Aereo (Esmagamento em Salto Colossal):
+  Alça salto titânico com impulsão rúnica caindo com todo o peso do mármore na arena.
+  Defesa: Esquiva [C] ou Parry [X].
+• Attack_Parry (Golpe de Dorso com Braço de Pedra):
+  Varredura frontal rápida com o antebraço telegrafada por brilho nas runas azuis.
+  Defesa: Parry [X].
+
+Storyboard Quadro a Quadro:
+- Idle (4f): Postura imponente como uma estátua viva; runas azuis pulsam luz suave.
+- Walk (6f): Passos gigantescos que fazem poeira subir das juntas do mármore.
+- Hurt (3f): Lascas de obsidiana saltam da armadura de pedra.
+- Death (5f): As runas apagam com tremor, as juntas quebram e o colosso racha em monólitos.
+--------------------------------------------------------------------------------
+
+
+================================================================================
+BOSS 6: LORDE DA LUA SANGRENTA (SALA 6 - CASTELO ESCARLATE)
+================================================================================
+Prompt para Pixel Lab:
+--------------------------------------------------------------------------------
+LORDE DA LUA SANGRENTA (CHEFE DA SALA 6 - TRONO CARMESIM)
+Canvas por quadro: 64x64 pixels. View: low top-down (2.5D RPG).
+Conceito: Aristocrata vampírico esguio com armadura cerimonial rubra e capa longa de
+veludo carmesim, olhos escarlates brilhantes e florete de prata fina com corte sangrento.
+
+Paleta de Cores (HEX):
+  - Veludo Carmesim e Sangue: #450A0A, #881337, #E11D48
+  - Ouro Real e Filigrana:    #78350F, #D97706, #FDE047
+  - Prata Fina da Espada:     #94A3B8, #E2E8F0, #FFFFFF
+  - Cabelos Platinados:       #CBD5E1, #F1F5F9
+
+Ataques e Telegrafia de QTE:
+• Attack_Parry (Estocada de Luz Rubra):
+  Teleporte curto seguido de estocada cirúrgica de florete na velocidade do som.
+  Defesa: Parry [X] ou Desvio [C].
+• Attack_Combo (Dança das Lâminas de Sangue):
+  Sequência tripla fluida de esgrima com arcos carmesins cortando o ar.
+  Defesa: Parry [X] -> Parry [X] -> Parry [X].
+• Attack_Desvio (Colapso da Lua de Sangue - IMPARÁVEL):
+  Ergue o florete ao teto invocando uma lua de sangue que explode em chuva de agulhas.
+  Defesa: Esquiva [C] obrigatória.
+
+Storyboard Quadro a Quadro:
+- Idle (4f): Postura nobre de esgrimista, capa de veludo carmesim ondulando suavemente.
+- Walk (6f): Passos elegantes e rápidos que parecem planar sobre as lajes.
+- Hurt (3f): Capa se fecha em casulo protetor; olhos brilham em vermelho rubro.
+- Death (5f): Florete cai; lorde se dissolve em revoadas de morcegos de sombra e névoa.
+--------------------------------------------------------------------------------
+
+
+================================================================================
+BOSS 7: GUARDIÃO DO VAZIO (SALA 7 - CHEFE SUPREMO / BOSS RUSH)
+================================================================================
+Prompt para Pixel Lab:
+--------------------------------------------------------------------------------
+GUARDIÃO DO VAZIO (CHEFE SUPREMO FINAL - COLAPSO DO UNIVERSO)
+Canvas por quadro: 80x80 pixels. View: low top-down (2.5D RPG).
+Conceito: Titã divino corrompido pelo Vazio Cósmico, armadura rúnica negra forjada em
+estrelas mortas, espada colossal com fenda de fogo estelar e asas de sombra viva.
+
+Paleta de Cores (HEX):
+  - Ônix Profundo do Vazio:   #020617, #09090B, #1E1B4B
+  - Ciano Rúnico Cósmico:     #0891B2, #06B6D4, #67E8F9
+  - Fogo Solar do Eclipse:    #9A3412, #EA580C, #F97316, #FDE047
+  - Aço Estelar Puro:         #64748B, #CBD5E1, #FFFFFF
+
+Ataques e Rotação Completa (Alternância Contínua de Todos os 4 QTEs):
+• Attack_Pulo (Fenda Titânica Cósmica):
+  Crava a espada colossal com as duas mãos no solo, explodindo uma fenda estelar rasteira.
+  Defesa: Pulo [ESPAÇO].
+• Attack_Parry (Investida Colossal de Aço):
+  Estocada horizontal supersônica em linha reta com a lâmina de duas mãos.
+  Defesa: Parry Perfeito [X].
+• Attack_Aereo (Julgamento Astral em Mergulho):
+  Salto com asas cósmicas para fora da tela e mergulho esmagador.
+  Defesa: Esquiva [C] ou Parry [X].
+• Attack_Desvio (Explosão do Eclipse do Vazio - IMPARÁVEL):
+  Chama do eclipse negro se expande em onda de choque térmica irresistível.
+  Defesa: Esquiva Lateral [C] obrigatória.
+
+Storyboard Quadro a Quadro:
+- Idle (4f): Titã ereto com espada apoiada nas lajes; chamas do eclipse pulsam no peito.
+- Walk (6f): Marcha lenta titânica com solo rachando sob seus passos rúnicos.
+- Hurt (3f): Fendas de luz estelar azul e fogo vazam pelas juntas da armadura ônix.
+- Death (5f): Espada racha ao meio; armadura explode em partículas cósmicas de luz e trevas.
+================================================================================
+

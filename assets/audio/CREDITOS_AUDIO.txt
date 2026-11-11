@@ -1,0 +1,39 @@
+==============================================================================
+CRÉDITOS DE ÁUDIO — ENDBOUND
+==============================================================================
+As faixas de música e efeitos sonoros deste jogo foram obtidos de fontes abertas
+no GitHub sob licenças livres (CC-BY-SA 3.0 / CC0 / OpenGameArt):
+
+Projeto de Origem:
+- Flare RPG (Flare Action Roleplaying Engine)
+- Repositório oficial no GitHub: https://github.com/flareteam/flare-game
+- Mod: FantasyCore (music & soundfx)
+
+Autores das Músicas e Efeitos:
+- Brandon Morris (Músicas e ambientação)
+- Justin Nichol (Composição e efeitos sonoros)
+- Clint Bellanger (Efeitos sonoros e design de áudio)
+- Equipe FlareTeam e colaboradores da comunidade OpenGameArt
+
+Efeitos Sonoros Integrados:
+- sword.ogg, sword_crit.ogg: Ataques corpo a corpo e golpes de lâmina
+- block.ogg / parry.ogg: Aparada perfeita (parry) e bloqueio
+- teleport.ogg: Esquiva temporal rápida
+- fireball.ogg, shock.ogg, thunder.ogg, shield.ogg: Habilidades mágicas e de combate
+- burn.ogg, freeze.ogg: Efeitos de dano contínuo (Queimadura) e Lentidão
+- hit_player.ogg, hit_enemy.ogg: Impacto de dano
+- death_player.ogg, death_enemy.ogg: Derrotas
+- heal.ogg, potion.ogg: Poções e restauração de vida
+- level_up.ogg, xp_gain.ogg: Conquistas, ganho de experiência e subida de nível
+- ui_select.ogg: Navegação em menus e seleções
+- door_open.ogg: Passagem por portais dimensionais
+- spikes.ogg, quake.ogg: Armadilhas de espinhos e ondas de choque de chefes
+
+Músicas Integradas:
+- title_theme.ogg: Tema solene do Menu Inicial
+- dungeon_theme.ogg: Tema de exploração das salas subterrâneas (Cemitério, Portões, Mausoléu, Arquivo)
+- forest_theme.ogg: Tema de exploração das salas florestais (Bosque, Estátua Sombria, Trono Carmesim)
+- battle_theme.ogg: Tema tenso de combate contra inimigos comuns
+- boss_theme.ogg: Tema épico e urgente de combate contra os Chefes Ancestrais
+- safe_room_theme.ogg: Tema da vitória, redenção e epílogo
+==============================================================================

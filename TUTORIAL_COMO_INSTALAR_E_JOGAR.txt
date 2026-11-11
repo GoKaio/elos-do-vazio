@@ -1,0 +1,108 @@
+================================================================================
+          ELOS DO VAZIO (ENDBOUND) — TUTORIAL DE INSTALAÇÃO E GUIA DE JOGO
+================================================================================
+
+Bem-vindo a Elos do Vazio!
+Este é um RPG de Turnos Tático 2.5D com sistema de combate reativo em tempo real
+(inspirado em Clair Obscur: Expedition 33).
+
+================================================================================
+PARTE 1: COMO INSTALAR EM 2 MINUTOS (PASSO A PASSO)
+================================================================================
+
+O jogo funciona em qualquer computador com Windows 10 ou Windows 11.
+Tudo o que você precisa é ter o PYTHON instalado.
+
+PASSO 1 — VOCÊ JÁ TEM O PYTHON INSTALADO?
+  • Se já tem o Python no computador, vá direto para o PASSO 2!
+  • Se NÃO tem o Python instalado, você tem duas opções muito fáceis:
+    Opção A (Mais fácil): Abra a Microsoft Store no Windows, pesquise por "Python 3.12" (ou 3.11) e clique em "Obter / Instalar".
+    Opção B: Acesse https://www.python.org/downloads e baixe o instalador.
+    ⚠️ IMPORTANTE: Na primeira tela do instalador, MARQUE a caixinha:
+       [X] "Add python.exe to PATH" (Adicionar Python ao PATH).
+
+PASSO 2 — INSTALAR AS DEPENDÊNCIAS DO JOGO
+  1. Extraia todos os arquivos deste arquivo .ZIP em uma pasta no seu computador.
+  2. Dê um duplo-clique no arquivo:
+     👉 INSTALAR_DEPENDENCIAS.bat
+  3. Uma telinha preta se abrirá e instalará automaticamente a biblioteca pygame-ce.
+     Quando terminar, ela avisará: "Instalação concluída com sucesso!".
+
+PASSO 3 — HORA DE JOGAR!
+  1. Dê um duplo-clique no arquivo:
+     👉 JOGAR.bat
+  2. Pronto! O jogo abrirá imediatamente. Bom jogo!
+
+
+================================================================================
+PARTE 2: CONTROLES COMPLETOS (TECLADO E CONTROLE USB)
+================================================================================
+
+O jogo aceita TECLADO e CONTROLES USB (Xbox, PlayStation ou Genéricos):
+
+--------------------------------------------------------------------------------
+1. EXPLORAÇÃO NO MAPA:
+--------------------------------------------------------------------------------
+  • Andar para Esquerda / Direita: [A] / [D]  ou  Setas [←] [→]  (ou Analógico / D-Pad)
+  • Saltar obstáculos:             [ESPAÇO]  ou  [W]  ou  Seta [↑] (ou Botão A no controle)
+  • Entrar em Portas / Interagir:  [E]  ou  [ENTER]               (ou Botão X no controle)
+  • Menu de Pausa:                 [ESC]                          (ou Botão START / OPTION)
+
+--------------------------------------------------------------------------------
+2. SEU TURNO DE ATAQUE (COMBATE 2.5D):
+--------------------------------------------------------------------------------
+  • Navegar nas opções de ataque: Setas [↑] [↓] ou [W] [S]
+  • Confirmar Golpe ou Item:      [ENTER], [ESPAÇO] ou [Z]        (ou Botão A no controle)
+  • Voltar ao menu anterior:      [ESC]                          (ou Botão B no controle)
+
+  🎯 COMO ESCOLHER EM QUAL INIMIGO BATER:
+  • Pressione [A] ou [D] (ou os gatilhos LB / RB no controle) para mudar o alvo.
+  • Uma mira e um indicador dourado destacarão o inimigo escolhido.
+  • O seu herói correrá diretamente até a frente daquele inimigo para golpear!
+
+  ⚡ QTE DE ATAQUE CRÍTICO:
+  • Durante o ataque do herói, círculos e runas convergirão no centro da tela.
+  • Pressione [Z] (ou [ESPAÇO]) exatamente no milissegundo em que o anel se fechar
+    no losango dourado para desferir um ATAQUE CRÍTICO DEVASTADOR (+45% de Dano e +AP)!
+
+--------------------------------------------------------------------------------
+3. DEFESA EM TEMPO REAL (QUANDO O INIMIGO ATACA VOCÊ):
+--------------------------------------------------------------------------------
+Preste muita atenção no aviso na tela e nos comandos de defesa:
+
+  🛡️ [ESPAÇO] SALTAR (Pulo Defensivo):
+     • Obrigatório contra ataques que viajam pelo chão (Onda de Choque, Terremoto, Rasteira).
+     • Ao apertar [ESPAÇO] no momento certo, o herói salta alto no ar com um escudo de vento
+       e o ataque sísmico passa por debaixo dos pés dele!
+     • Salto Perfeito concede +1 AP de contra-ataque.
+
+  ⚔️ [X] APARAR (Parry):
+     • Bloqueio com a espada no momento exato em que o golpe do inimigo vai encostar.
+     • Anula todo o dano, causa tremedeira de impacto e gera +1 a +2 de Éter (+AP)!
+
+  💨 [C] ESQUIVAR (Desvio):
+     • Esquiva lateral rápida com teletransporte de sombra.
+     • Ideal contra ataques rápidos, garras e projéteis perfurantes.
+
+
+================================================================================
+PARTE 3: DICAS E RECURSOS ESPECIAIS
+================================================================================
+
+• TELA CHEIA:
+  Pressione [F11] a qualquer momento para jogar em tela cheia com proporção 16:9 perfeita.
+
+• MODO AUTÔNOMO (MODO BOT) [F2]:
+  Quer ver o jogo rodando sozinho ou testar uma luta difícil?
+  Pressione [F2] e uma inteligência artificial jogará pelo guerreiro, desviando de golpes
+  e executando contra-ataques precisos automaticamente!
+
+• MODOS DE JOGO:
+  1. MODO CAMPANHA: Percorra 7 salas misteriosas do Cemitério da Lua Pálida,
+     desative enigmas e derrote o Bibliotecário nas profundezas.
+  2. MODO BOSS RUSH: Lute diretamente contra os 7 Grandes Chefes em sequência!
+
+================================================================================
+Desenvolvido com carinho. Compartilhe com os amigos e divirtam-se!
+================================================================================
+

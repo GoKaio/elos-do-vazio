@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Tutorial de Instalação e Guia de Jogo — Elos do Vazio</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0B0E17;
+      color: #E2E8F0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      padding: 30px 20px;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      background: #111827;
+      border: 2px solid #D97706;
+      border-radius: 12px;
+      padding: 36px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.8), inset 0 0 15px rgba(217, 119, 6, 0.15);
+    }
+    h1 {
+      color: #FBBF24;
+      text-align: center;
+      font-size: 2.2rem;
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+    }
+    .sub {
+      text-align: center;
+      color: #94A3B8;
+      font-size: 1rem;
+      margin-bottom: 30px;
+    }
+    .divider {
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #D97706, transparent);
+      margin: 25px 0;
+    }
+    .card {
+      background: #1A2234;
+      border: 1px solid #334155;
+      border-left: 4px solid #D97706;
+      border-radius: 8px;
+      padding: 18px 22px;
+      margin-bottom: 20px;
+    }
+    .card h2 {
+      color: #FDE68A;
+      font-size: 1.3rem;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .step {
+      display: flex;
+      gap: 14px;
+      margin-bottom: 14px;
+      align-items: flex-start;
+    }
+    .step-num {
+      background: #D97706;
+      color: #111827;
+      font-weight: bold;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .key {
+      display: inline-block;
+      background: #0F172A;
+      color: #38BDF8;
+      border: 1px solid #38BDF8;
+      border-radius: 5px;
+      padding: 2px 8px;
+      font-weight: bold;
+      font-family: monospace;
+      font-size: 0.95rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+    .key-gold {
+      color: #FCD34D;
+      border-color: #FCD34D;
+    }
+    .key-red {
+      color: #F87171;
+      border-color: #F87171;
+    }
+    .key-green {
+      color: #4ADE80;
+      border-color: #4ADE80;
+    }
+    .tag {
+      background: #0284C7;
+      color: #FFF;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      margin-left: 8px;
+    }
+    ul { list-style: none; }
+    li { margin-bottom: 10px; }
+    .alert {
+      background: rgba(220, 38, 38, 0.15);
+      border: 1px solid #EF4444;
+      border-radius: 6px;
+      padding: 12px;
+      color: #FCA5A5;
+      font-size: 0.95rem;
+      margin-top: 10px;
+    }
+    footer {
+      text-align: center;
+      color: #64748B;
+      font-size: 0.9rem;
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>⚔️ Elos do Vazio ⚔️</h1>
+    <div class="sub">RPG de Turnos Tático 2.5D com Reações Defensivas em Tempo Real</div>
+
+    <div class="card">
+      <h2>🚀 Como Instalar e Iniciar em 2 Passos</h2>
+      <div class="step">
+        <div class="step-num">1</div>
+        <div>
+          <strong>Instalar Dependências (apenas na 1ª vez):</strong><br>
+          Dê um duplo-clique no arquivo <code>INSTALAR_DEPENDENCIAS.bat</code>.<br>
+          <em>(Ele instalará a biblioteca <code>pygame-ce</code> automaticamente).</em>
+          <div class="alert">
+            ⚠️ <strong>Se você ainda não tiver o Python instalado:</strong><br>
+            Abra a <strong>Microsoft Store</strong> no Windows, pesquise por <strong>Python 3.12</strong> e clique em <em>Instalar</em>.<br>
+            Ou baixe pelo site oficial: <a href="https://www.python.org/downloads" style="color: #60A5FA;" target="_blank">python.org/downloads</a> (lembre de marcar a caixinha <strong>Add Python to PATH</strong>).
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div>
+          <strong>Jogar:</strong><br>
+          Basta dar um duplo-clique no arquivo <code>JOGAR.bat</code> e o jogo abrirá imediatamente!
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="card">
+      <h2>🎮 Controles Principais</h2>
+      <ul>
+        <li><strong>Exploração no Mapa:</strong> Ande com <span class="key">A</span> / <span class="key">D</span> (ou setas), pule com <span class="key">ESPAÇO</span> e interaja com <span class="key">E</span> ou <span class="key">ENTER</span>.</li>
+        <li><strong>Navegação de Menus de Combate:</strong> Setas ou <span class="key">W</span> <span class="key">S</span>, confirme com <span class="key">ENTER</span> ou <span class="key">Z</span>.</li>
+        <li><strong>Mudar Alvo Inimigo:</strong> Pressione <span class="key">A</span> ou <span class="key">D</span> para escolher qual inimigo quer atacar. O herói se moverá diretamente na direção dele!</li>
+        <li><strong>Ataque Crítico (QTE):</strong> Pressione <span class="key key-gold">Z</span> no momento exato em que o anel dourado fechar no losango.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>🛡️ Defesa em Tempo Real (Turno do Inimigo)</h2>
+      <ul>
+        <li><span class="key key-gold">ESPAÇO</span> <strong>Pulo Defensivo:</strong> Obrigatório contra ondas de choque e terremotos no chão. O herói salta alto no ar e o ataque passa por baixo dos pés!</li>
+        <li><span class="key">X</span> <strong>Aparar (Parry):</strong> Pressione no milissegundo do impacto para bloquear o golpe, anular todo o dano e recarregar Éter (+AP).</li>
+        <li><span class="key key-green">C</span> <strong>Esquivar (Desvio):</strong> Teletransporte de sombra contra ataques perfurantes e golpes venenosos.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>✨ Atalhos Úteis</h2>
+      <ul>
+        <li><span class="key">F11</span> <strong>Tela Cheia:</strong> Alterna entre modo janela e tela cheia 16:9 estabilizada.</li>
+        <li><span class="key">F2</span> <strong>Modo Bot (IA Autônoma):</strong> Ativa a vitrine autônoma onde o robô joga e desvia sozinho.</li>
+        <li><span class="key">ESC</span> <strong>Menu / Pausa:</strong> Pausa a partida ou volta ao menu principal.</li>
+      </ul>
+    </div>
+
+    <footer>
+      Elos do Vazio — Desenvolvido com carinho. Bom jogo!
+    </footer>
+  </div>
+</body>
+</html>
+

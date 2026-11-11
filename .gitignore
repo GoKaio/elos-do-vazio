@@ -1,0 +1,37 @@
+# Ambientes Python e caches
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+.venv/
+env/
+
+# IDEs e arquivos de configuração local
+.vscode/
+
+# Logs, saves e perfis locais
+*.log
+*.tmp
+jogo_erro.log
+progresso*.json
+ranking*.json
+elos_do_vazio_save.json
+elos_do_vazio_ranking.json
+perfis/
+
+# Repositórios de referência clonados localmente
+tools/repos_ref/
+
+# Artefatos pesados de build e pacotes ZIP (distribuir instalador via GitHub Releases)
+build/
+dist/
+dist_installer/
+build_payload/
+build_installer_work/
+*.spec
+*.zip
+
+# Vídeo bruto 1080p60 (o README usa assets/trailer_preview.gif)
+trailer_elos_do_vazio.mp4
+

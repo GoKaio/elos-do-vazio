@@ -1,0 +1,70 @@
+================================================================================
+                    ELOS DO VAZIO (ENDBOUND) — GUIA DO JOGO
+================================================================================
+
+RPG de Turnos Tático 2.5D com reações defensivas em tempo real (estilo Expedition 33).
+Desenvolvido em Python com pygame-ce.
+
+--------------------------------------------------------------------------------
+1. COMO INICIAR O JOGO
+--------------------------------------------------------------------------------
+
+MÉTODO RÁPIDO:
+  1. Dê um duplo-clique no arquivo "JOGAR.bat".
+  2. O jogo abrirá automaticamente.
+
+SE FOR A PRIMEIRA VEZ E NÃO TIVER AS DEPENDÊNCIAS:
+  1. Dê um duplo-clique em "INSTALAR_DEPENDENCIAS.bat" (ou abra o terminal e digite: pip install -r requirements.txt).
+  2. Em seguida, clique em "JOGAR.bat".
+
+--------------------------------------------------------------------------------
+2. CONTROLES E COMANDOS
+--------------------------------------------------------------------------------
+
+O jogo possui suporte completo para TECLADO e CONTROLE USB (Xbox / PlayStation):
+
+[EXPLORAÇÃO NO MAPA]
+  • Mover para Esquerda/Direita:  [A] / [D]  ou  Setas  (ou Analógico / D-Pad)
+  • Saltar:                       [ESPAÇO]  ou  [W]  (ou Botão A no controle)
+  • Interagir / Entrar em Portas: [E]  ou  [ENTER]   (ou Botão X no controle)
+  • Pausa / Menu:                 [ESC]             (ou Botão START / OPTION)
+
+[COMBATE TÁTICO 2.5D (SEU TURNO)]
+  • Navegar nos Menus:            Setas  ou  [W]/[S]/[A]/[D]
+  • Confirmar Ação / Ataque:      [ENTER]  ou  [ESPAÇO]  ou  [Z]  (ou Botão A)
+  • Voltar ao Menu Anterior:      [ESC]                     (ou Botão B)
+  • Trocar Alvo Inimigo:          [A] / [D]                 (ou Gatilhos LB / RB)
+
+[QTE OFENSIVO DURANTE O ATAQUE]
+  • Pressione [Z] (ou [ESPAÇO]) no momento em que as runas douradas convergirem
+    sobre o losango para desferir um GOLPE CRÍTICO PERFEITO!
+
+[REAÇÕES DEFENSIVAS EM TEMPO REAL (TURNO DO INIMIGO)]
+  • SALTAR [ESPAÇO] (ou Botão A):
+    Obrigatório contra ondas de choque e golpes sísmicos de chão!
+    O herói salta no ar com escudo de vento enquanto o impacto passa pelo piso.
+  • APARAR / PARRY [X] (ou Botão X):
+    Bloqueio de precisão no milissegundo do impacto para anular o dano e recuperar Éter (+AP).
+  • ESQUIVAR / DESVIO [C] (ou Botão B):
+    Esquiva rápida contra golpes perfurantes, venenosos e de sombra.
+
+--------------------------------------------------------------------------------
+3. MODOS E RECURSOS ESPECIAIS
+--------------------------------------------------------------------------------
+
+• MODO CAMPANHA:
+  Explore as 7 salas do Cemitério e das Catacumbas, desative armadilhas e derrote os chefes.
+
+• MODO BOSS RUSH:
+  Desafie diretamente os 7 grandes Chefes em sequência com vidas contínuas.
+
+• MODO AUTÔNOMO (BOT) [F2]:
+  Pressione [F2] para que a IA assuma o controle do combate e da exploração.
+
+• TELA CHEIA [F11]:
+  Alterne entre janela e tela cheia com proporção 16:9 estabilizada.
+
+================================================================================
+                    Divirta-se jogando Elos do Vazio!
+================================================================================
+
